@@ -46,7 +46,10 @@ api.post('/login', (req, res) => {
   user.retries = 0;
 
   req.session.user = user.name
-  res.json({ isOpen, owner, username: user.name })
+  res.json({
+    user: user.name,
+    lockState: { isOpen, owner}
+  })
 })
 
 api.use((req, res, next) => {
@@ -64,7 +67,13 @@ api.post('/logout', (req, res) => {
 })
 
 api.get('/status', (req, res) => {
-  res.json({ isOpen, owner })
+  res.json({
+    lockState: {
+      isOpen,
+      owner
+    },
+    user: req.session.user
+  })
 })
 
 api.post('/open', (req, res) => {
