@@ -23,7 +23,7 @@ function App () {
   const [state, setState] = useState(Loading())
 
   useEffect(() => {
-    getStatus()
+    api.getStatus()
       .then(({ user, lockState }) => setState(LoggedIn(user, lockState)))
       .catch(() => setState(LoggedOut()))
   }, [])

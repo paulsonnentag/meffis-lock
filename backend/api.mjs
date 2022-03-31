@@ -1,14 +1,30 @@
 import express from 'express'
+import path from 'path'
+import fs from 'fs'
+import { isPasswordCorrect } from './password.mjs'
+import { dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const api = express.Router()
 
 let isOpen = false
-let owner = null;
+let owner = null
 
-const USERS = {
-  'paul': { name: 'Paul', password: 'anotherday', retries: 0 },
-  'erwin': { name: 'Erwin', password: 'foobar', retries: 0 }
-}
+const USERS_FILE_PATH = path.join(__dirname, 'users.json')
+
+const users = (
+  fs.existsSync(USERS_FILE_PATH)
+    ? JSON.parse(fs.readFileSync(USERS_FILE_PATH, 'utf8'))
+    : []
+)
+
+const usersByName = users
+  .reduce((users, user) => {
+    users[user.name.toLowerCase()] = { ...user, retries: 0 }
+    return users
+  }, {})
 
 const MAX_RETRIES = 3
 
@@ -21,7 +37,7 @@ api.post('/login', (req, res) => {
     return
   }
 
-  const user = USERS[username.toLowerCase()]
+  const user = usersByName[username.toLowerCase()]
 
   if (!user) {
     res.status(403)
@@ -35,7 +51,7 @@ api.post('/login', (req, res) => {
     return
   }
 
-  if (user.password !== password) {
+  if (!isPasswordCorrect(user.hash, user.salt, password)) {
     user.retries += 1
     res.status(403)
     res.send('Das Passwort oder der Name ist falsch.')
@@ -43,12 +59,12 @@ api.post('/login', (req, res) => {
   }
 
   // reset retries
-  user.retries = 0;
+  user.retries = 0
 
   req.session.user = user.name
   res.json({
     user: user.name,
-    lockState: { isOpen, owner}
+    lockState: { isOpen, owner }
   })
 })
 
@@ -62,7 +78,7 @@ api.use((req, res, next) => {
 })
 
 api.post('/logout', (req, res) => {
-  req.session.destroy();
+  req.session.destroy()
   res.json({})
 })
 
@@ -79,7 +95,7 @@ api.get('/status', (req, res) => {
 api.post('/open', (req, res) => {
   setTimeout(() => {
     isOpen = true
-    owner = req.session.user;
+    owner = req.session.user
 
     res.json({ isOpen, owner })
   }, 1000)
