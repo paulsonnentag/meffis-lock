@@ -3,19 +3,26 @@ import express from 'express'
 const api = express.Router()
 
 let isOpen = false
+let owner = 'paul'
 
-api.get('/status', () => {
-  res.json({ isOpen })
+api.get('/status', (req, res) => {
+  res.json({ isOpen, owner })
 })
 
 api.post('/open', (req, res) => {
-  isOpen = false
-  res.status(200)
+  setTimeout(() => {
+    isOpen = true
+
+    res.json({isOpen, owner})
+  }, 1000)
 })
 
 api.post('/close', (req, res) => {
-  isOpen = false
-  res.status(200)
+  setTimeout(() => {
+    isOpen = false
+
+    res.json({isOpen, owner})
+  }, 1000)
 })
 
 export default api
