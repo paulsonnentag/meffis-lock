@@ -13,12 +13,41 @@ body {
 .App {
 }
 
+.Form {
+  width: 100%;
+}
+
+.Field {
+  display: flex;
+  width: 100%;
+  padding-bottom: 8px;
+  font-size: 20px;
+}
+
+.Form_Error {
+  color: #c02f27;
+}
+
+.Field_Label {
+  width: 100px;
+}
+
 .Header {
   display: flex;
   padding: 16px;
   background: #000;
   width: 100%;
+  align-items: center;
+  justify-content: space-between;
 }
+
+.Header > button {
+  font-size: 20px;
+  color: #ffffff;
+  border: 0;
+  background: transparent;
+}
+
 
 .App_Content {
   padding: 16px;
