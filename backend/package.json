@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "dev": "nodemon index.mjs",
+    "start": "node index.mjs"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "start": "snowpack build --watch --hmr"
+  },
+  "dependencies": {
+    "preact": "^10.7.0"
+  },
+  "devDependencies": {
+    "snowpack": "^3.8.8"
+  }
+}
