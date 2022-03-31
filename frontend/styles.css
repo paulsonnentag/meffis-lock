@@ -137,6 +137,8 @@ body {
   font-size: 20px;
   padding: 8px;
   border-radius: 3px;
+  width: 100%;
+  text-align: center;
 }
 
 .Button:disabled {

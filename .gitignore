@@ -2,4 +2,5 @@ backend/node_modules
 backend/public
 backend/users.json
 backend/config.mjs
+backend/log.txt
 frontend/node_modules

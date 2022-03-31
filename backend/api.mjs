@@ -13,6 +13,7 @@ let isOpen = false
 let owner = null
 
 const USERS_FILE_PATH = path.join(__dirname, 'users.json')
+const LOG_FILE_PATH = path.join(__dirname, 'log.txt')
 
 const users = (
   fs.existsSync(USERS_FILE_PATH)
@@ -97,6 +98,8 @@ api.post('/open', (req, res) => {
     isOpen = true
     owner = req.session.user
 
+    addLogEntry(`opened by ${owner}`)
+
     res.json({ isOpen, owner })
   }, 1000)
 })
@@ -105,8 +108,16 @@ api.post('/close', (req, res) => {
   setTimeout(() => {
     isOpen = false
 
+    addLogEntry(`closed by ${owner}`)
+
     res.json({ isOpen, owner })
   }, 1000)
 })
+
+function addLogEntry (message) {
+  const date = new Date()
+
+  fs.appendFileSync(LOG_FILE_PATH, `${date.toLocaleDateString()} ${date.toLocaleTimeString()}: ${message}\n`, {flag: 'as'})
+}
 
 export default api

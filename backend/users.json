@@ -1,7 +1,12 @@
 [
   {
-    "name": "foo",
-    "hash": "yJ8lfdDRZP9A7zMWTM6UMhACTCwRL3nGtuepeNPZEZLxAZJlzTFRrjfux0Vh8juO6U6yXtjb7ZjaZqcxNG9pf0koXqepRS8UxomW+PeE3sfydOfVBaE8BrhJx4avUXEs2KhMOH1EEA2U8i1Fm9IhWquPFF0bLoJjvwryx9VSiLU=",
-    "salt": "sIKkjBQPT+TDR3xjNo17TD/3U2lfYCMxB9DMsYROUcnPrxAsIm+Vtmyyu0dmTxI0si3uN7Dgaf7I5ff1b+6KG7kX87PrU6fFti8AFMZ1BRIcxldVa6KRvqnnvpvuq0vGdbIDqMdKs8gOJPXs+vYp4WXn0LBGPTuHeJ6EpFfV5ys="
+    "name": "Erwin",
+    "hash": "9bbVuKAeyctmTCrfagGOaa3q8KMLznWqRl+QeUCHw0Ew0ieDHSWfjxSmSdpw4a18Rb+Kn09RR+WDY9+5ipI0Fv/dFkdbdSXSzkN5c2Y5cQNb2p7+aWZagi5LV4//ZUuMBoZkAevyzoBIqVeWUsV5jt471Reh3c25IJmpdZusITo=",
+    "salt": "zVevGokiZF5pQuWLp3zY5eLbi2qx9b/fZZi3JJbVEwc8vBchn2OX3EabiSQ38hiMFTRhHbsOt2JrPPyOeGoZBocd/gzZ/pRzFOI6Lnkn7msIqEyXhCM0Uj4Bz9NZrl/t8sq+nHgeE2tTotDY+jJyKBL9j4mSoMv9H+l0dII6M34="
+  },
+  {
+    "name": "Paul",
+    "hash": "lTOBUE2Q8q3fz0yUMjv5bBzz3Zz76vPPchJm7YeYJ8BzDxL5WXyv+Uo+h/FthbGOe8RdEvEzRnWxI4gN0HKItNBJyjCCn466lzKCsrISsk3L3KGG815gmRLAGn1OAyhVUXQQcubn6+bBLkX6mSMPKFqPJ96x4bf3PrWfxh843h8=",
+    "salt": "QyxZ34YVtAGtgnwTcSshhu5u3K8wijElM1CJvDjueAAIr+r9sCsuuU2cOujqC4fS3eBvrbI73VXyBigKfDEYUsneaDACi4dckE8x2heas4QjcLPONk8/9JwdnwDiU93DZeBgt2+tnfE/pYUWC5zVw7Dd56Dq/xnIoZuOtAvsG/U="
   }
 ]

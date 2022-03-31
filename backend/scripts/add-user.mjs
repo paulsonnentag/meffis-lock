@@ -46,8 +46,6 @@ while (true) {
 
 const { hash, salt } = hashPassword(password1)
 
-console.log('check', isPasswordCorrect(hash, salt, password1))
-
 users.push({ name, hash, salt })
 
 fs.writeFileSync(USERS_FILE_PATH, JSON.stringify(users, null, 2), { flag: 'w+' })
