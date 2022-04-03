@@ -1,7 +1,8 @@
 {
   "scripts": {
     "dev": "nodemon index.mjs",
-    "start": "node index.mjs"
+    "start": "node index.mjs",
+    "add-user": "node src/add-user.mjs"
   },
   "devDependencies": {
     "nodemon": "^2.0.15"

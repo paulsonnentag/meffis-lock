@@ -94,6 +94,9 @@ api.get('/status', (req, res) => {
 })
 
 api.post('/open', (req, res) => {
+
+  // TODO: Replace timeout with actual unlock command
+
   setTimeout(() => {
     isOpen = true
     owner = req.session.user
@@ -105,8 +108,12 @@ api.post('/open', (req, res) => {
 })
 
 api.post('/close', (req, res) => {
+
+  // TODO: Replace timeout with actual lock command
+
   setTimeout(() => {
     isOpen = false
+    owner = null
 
     addLogEntry(`closed by ${owner}`)
 
