@@ -2,9 +2,9 @@
 
 ## Installation
 
-create backend/config.mjs file
+create `backend/config.mjs` file
 
-```
+```javascript
 const config = {
   sessionSecret: "foobar" // secret that will be used for the cookie session
 }
@@ -14,7 +14,7 @@ export default config;
 
 build frontend
 
-```
+```bash
 cd frontend
 npm install
 npm run build
@@ -22,8 +22,8 @@ npm run build
 
 start backend
 
-```
-cd backend
+```bash
+cd ../backend
 npm install
 npm start
 ```
@@ -32,14 +32,14 @@ npm start
 
 run backend with
 
-```
+```bash
 cd backend
 npm run dev
 ```
 
 run frontend build with
 
-```
+```bash
 cd frontend
 npm run start
 ```
@@ -50,14 +50,14 @@ Unfortunately sometimes the frontend build crashed and you need to restart it
 
 run
 
-```
+```bash
 node backend/src/add-user.mjs
 ```
 
 or in backend directory
 
-```
+```bash
 npm run add-user
 ```
 
-Usernames with hashed passwords are stored in `backend/users.json`
+Usernames with hashed passwords are stored in `backend/users.json`. You need to restart the server after you've added a new user.

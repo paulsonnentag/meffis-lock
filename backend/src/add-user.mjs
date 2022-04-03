@@ -3,7 +3,7 @@ import readline from 'readline-sync'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import path from 'path'
-import { hashPassword, isPasswordCorrect } from '../password.mjs'
+import { hashPassword } from './password.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

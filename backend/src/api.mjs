@@ -12,8 +12,8 @@ const api = express.Router()
 let isOpen = false
 let owner = null
 
-const USERS_FILE_PATH = path.join(__dirname, 'users.json')
-const LOG_FILE_PATH = path.join(__dirname, 'log.txt')
+const USERS_FILE_PATH = path.join(__dirname, '../users.json')
+const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
 
 const users = (
   fs.existsSync(USERS_FILE_PATH)

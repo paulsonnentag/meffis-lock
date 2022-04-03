@@ -3,7 +3,7 @@ import session from 'express-session'
 import bodyParser from 'body-parser'
 import api from './api.mjs'
 
-import config from './config.mjs'
+import config from '../config.mjs'
 
 const app = express()
 const port = 3000

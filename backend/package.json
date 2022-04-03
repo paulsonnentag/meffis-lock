@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "dev": "nodemon index.mjs",
-    "start": "node index.mjs",
+    "dev": "nodemon src/index.mjs",
+    "start": "node src/index.mjs",
     "add-user": "node src/add-user.mjs"
   },
   "devDependencies": {
