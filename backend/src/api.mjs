@@ -4,6 +4,7 @@ import fs from 'fs'
 import { isPasswordCorrect } from './password.mjs'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
+import keyble from 'keyble'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -14,6 +15,14 @@ let owner = null
 
 const USERS_FILE_PATH = path.join(__dirname, '../users.json')
 const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
+
+var key_ble = new keyble.Key_Ble({
+  address: "00:1a:22:17:66:68",
+  user_id: 1,
+  user_key: "xxxxx",
+  auto_disconnect_time: 0,
+  status_update_time: 60
+});
 
 const users = (
   fs.existsSync(USERS_FILE_PATH)
@@ -84,41 +93,48 @@ api.post('/logout', (req, res) => {
 })
 
 api.get('/status', (req, res) => {
-  res.json({
-    lockState: {
-      isOpen,
-      owner
-    },
-    user: req.session.user
-  })
+  key_ble.request_status().then( (lock_state)=> {
+    if (lock_state[1] == 'UNLOCKED') {
+      isOpen = true;
+    } else {
+      isOpen = false;
+    }
+    res.json({
+      lockState: {
+        isOpen,
+        owner
+      },
+      user: req.session.user
+    })
+  });
 })
 
 api.post('/open', (req, res) => {
 
-  // TODO: Replace timeout with actual unlock command
+  keyble.utils.time_limit(key_ble.unlock(), 10000)
+    .then( () => {
+      isOpen = true
+      owner = req.session.user
 
-  setTimeout(() => {
-    isOpen = true
-    owner = req.session.user
+      addLogEntry(`opened by ${owner}`)
 
-    addLogEntry(`opened by ${owner}`)
+      res.json({ isOpen, owner })
+    });
 
-    res.json({ isOpen, owner })
-  }, 1000)
 })
 
 api.post('/close', (req, res) => {
 
-  // TODO: Replace timeout with actual lock command
+  keyble.utils.time_limit(key_ble.lock(), 10000)
+    .then(() => {
+      isOpen = false
+      owner = null
 
-  setTimeout(() => {
-    isOpen = false
-    owner = null
+      addLogEntry(`closed by ${owner}`)
 
-    addLogEntry(`closed by ${owner}`)
+      res.json({ isOpen, owner })
+    });
 
-    res.json({ isOpen, owner })
-  }, 1000)
 })
 
 function addLogEntry (message) {
