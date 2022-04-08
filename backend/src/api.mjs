@@ -31,8 +31,6 @@ const usersByName = users
 
 const MAX_RETRIES = 3
 
-'#b62c26'
-
 api.post('/login', (req, res) => {
   const { username, password } = req.body
 

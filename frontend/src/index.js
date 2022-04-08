@@ -62,9 +62,9 @@ function LoginScreen ({
     const formData = new FormData(evt.target)
 
     api.loginUser(
-      formData.get('username'),
-      formData.get('password')
-    )
+        formData.get('username'),
+        formData.get('password')
+      )
       .then(({ user, lockState }) => onLogin({ user, lockState }))
       .catch((err) => setError(err))
   }
@@ -76,21 +76,23 @@ function LoginScreen ({
       ]),
       h('div', { class: 'App_Content' }, [
         h('div', { class: 'Content' }, [
-
-          error && h('div', { class: 'Form_Error' }, error),
-
           h('form', { class: 'Form', onSubmit: onSubmitLogin }, [
-            h('label', { class: 'Field' }, [
-              h('div', { class: 'Field_Label' }, 'Name'),
-              h('input', { type: 'text', name: 'username', required: true })
-            ]),
+            h('h1', {class: 'Form_Title'}, 'Anmeldung'),
 
-            h('label', { class: 'Field' }, [
-              h('div', { class: 'Field_Label' }, 'Passwort'),
-              h('input', { type: 'password', name: 'password', required: true })
-            ]),
+            error && h('div', { class: 'Form_Error' }, error),
 
-            h('br'),
+            h('div', {class: 'Form_Fields'}, [
+
+              h('label', { class: 'Field' }, [
+                h('div', { class: 'Field_Label' }, 'Name'),
+                h('input', { type: 'text', name: 'username', required: true })
+              ]),
+
+              h('label', { class: 'Field' }, [
+                h('div', { class: 'Field_Label' }, 'Passwort'),
+                h('input', { type: 'password', name: 'password', required: true })
+              ])
+            ]),
 
             h('button', { class: 'Button' }, 'Anmelden')
           ])
@@ -152,8 +154,8 @@ function LockStatusScreen ({
 
           h('div', {}, [
             isUnlocked && `Tür wurde aufgeschlossen von ${owner}`,
-            isLocked &&  'Tür ist abgeschlossen',
-            isUnknown &&  'Schlüssel wurde manuell gedreht'
+            isLocked && 'Tür ist abgeschlossen',
+            isUnknown && 'Schlüssel wurde manuell gedreht'
           ]),
 
           h('button', {
@@ -165,16 +167,16 @@ function LockStatusScreen ({
           ]),
 
           (isUnlocked || isUnknown) && (h('button', {
-                class: 'Button',
-                disabled: isUpdatePending,
-                onClick: onCloseLock
-              }, 'Schließen')
-          ),
-          (isLocked || isUnknown) && h('button', {
               class: 'Button',
               disabled: isUpdatePending,
-              onClick: onOpenLock
-            }, 'Öffnen'),
+              onClick: onCloseLock
+            }, 'Schließen')
+          ),
+          (isLocked || isUnknown) && h('button', {
+            class: 'Button',
+            disabled: isUpdatePending,
+            onClick: onOpenLock
+          }, 'Öffnen'),
 
           isForeignOwner && (
             h('button', {

@@ -8,6 +8,7 @@ html {
 body {
   margin: 0;
   font-family: 'Roboto', sans-serif;
+  font-size: 20px;
 }
 
 .App {
@@ -15,16 +16,30 @@ body {
 
 .Form {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.Form_Title {
+  margin: 0;
+}
+
+.Form_Fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .Field {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
   width: 100%;
-  padding-bottom: 8px;
-  font-size: 20px;
 }
 
 .Form_Error {
+  width: 100%;
   color: #c02f27;
 }
 
@@ -42,7 +57,6 @@ body {
 }
 
 .Header > button {
-  font-size: 20px;
   color: #ffffff;
   border: 0;
   background: transparent;
@@ -75,12 +89,12 @@ body {
   height: 100px;
   border: 0;
   padding: 0;
+  margin: 32px 0;
 }
 
 .Lock.isLocked {
   background: url('assets/lock-locked.svg');
 }
-
 
 .Lock.isUnlocked {
   background: url('assets/lock-unlocked.svg');
@@ -89,7 +103,6 @@ body {
 .Lock.isUnknown {
   background: url('assets/lock-unknown.svg');
 }
-
 
 .Lock > .Spinner {
   position: absolute;
@@ -141,8 +154,8 @@ body {
 
 .Button {
   border: 0;
-  background: #000000;
-  color: #ffffff;
+  background: #4f4f4f;
+  color: #fff;
   font-size: 20px;
   padding: 8px;
   border-radius: 3px;
@@ -152,4 +165,9 @@ body {
 
 .Button:disabled {
   opacity: 0.5;
+}
+
+input,
+button {
+  font-size: 20px;
 }
