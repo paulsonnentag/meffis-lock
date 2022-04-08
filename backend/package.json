@@ -13,6 +13,7 @@
     "express-session": "^1.17.2",
     "keyble": "^0.1.14",
     "readline-promise": "^1.0.5",
-    "readline-sync": "^1.4.10"
+    "readline-sync": "^1.4.10",
+    "socket.io": "^4.4.1"
   }
 }

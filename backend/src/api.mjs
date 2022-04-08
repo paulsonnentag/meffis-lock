@@ -8,14 +8,10 @@ import { createLock } from './lock.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const api = express.Router()
-
 let owner = null
 
 const USERS_FILE_PATH = path.join(__dirname, '../users.json')
 const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
-
-const lock = createLock()
 
 const users = (
   fs.existsSync(USERS_FILE_PATH)
@@ -31,76 +27,85 @@ const usersByName = users
 
 const MAX_RETRIES = 3
 
-api.post('/login', (req, res) => {
-  const { username, password } = req.body
+export function getApi (io) {
 
-  if (!username || !password) {
-    res.status(403)
-    res.send('Das Passwort oder der Name ist falsch.')
-    return
-  }
+  const lock = createLock()
+  const api = express.Router()
 
-  const user = usersByName[username.toLowerCase()]
-
-  if (!user) {
-    res.status(403)
-    res.send('Das Passwort oder der Name ist falsch.')
-    return
-  }
-
-  if (user.retries > MAX_RETRIES) {
-    res.status(403)
-    res.send('Der User wurde wegen zu vielen Anmeldeversuchen gesperrt.')
-    return
-  }
-
-  if (!isPasswordCorrect(user.hash, user.salt, password)) {
-    user.retries += 1
-    res.status(403)
-    res.send('Das Passwort oder der Name ist falsch.')
-    return
-  }
-
-  // reset retries
-  user.retries = 0
-
-  req.session.user = user.name
-  res.json({
-    user: user.name,
-    lockState: { state: lock.state, owner }
+  lock.on('changeState', (newState) => {
+    io.emit('changeState', { state: newState, owner})
   })
-})
 
-api.use((req, res, next) => {
-  if (!req.session.user) {
-    res.status(401)
-    res.end()
-  } else {
-    next()
-  }
-})
+  api.post('/login', (req, res) => {
+    const { username, password } = req.body
 
-api.post('/logout', (req, res) => {
-  req.session.destroy()
-  res.json({})
-})
+    if (!username || !password) {
+      res.status(403)
+      res.send('Das Passwort oder der Name ist falsch.')
+      return
+    }
 
-api.get('/status', (req, res) => {
-  res.json({
-    lockState: {
-      state: lock.state,
-      owner
-    },
-    user: req.session.user
+    const user = usersByName[username.toLowerCase()]
+
+    if (!user) {
+      res.status(403)
+      res.send('Das Passwort oder der Name ist falsch.')
+      return
+    }
+
+    if (user.retries > MAX_RETRIES) {
+      res.status(403)
+      res.send('Der User wurde wegen zu vielen Anmeldeversuchen gesperrt.')
+      return
+    }
+
+    if (!isPasswordCorrect(user.hash, user.salt, password)) {
+      user.retries += 1
+      res.status(403)
+      res.send('Das Passwort oder der Name ist falsch.')
+      return
+    }
+
+    // reset retries
+    user.retries = 0
+
+    req.session.user = user.name
+    res.json({
+      user: user.name,
+      lockState: { state: lock.state, owner }
+    })
   })
-})
 
-api.post('/open', (req, res) => {
-  lock.unlock()
-    .then(() => {
-      owner = req.session.user
+  api.use((req, res, next) => {
+    if (!req.session.user) {
+      res.status(401)
+      res.end()
+    } else {
+      next()
+    }
+  })
 
-      addLogEntry(`opened by ${owner}`)
+  api.post('/logout', (req, res) => {
+    req.session.destroy()
+    res.json({})
+  })
+
+  api.get('/status', (req, res) => {
+    res.json({
+      lockState: {
+        state: lock.state,
+        owner
+      },
+      user: req.session.user
+    })
+  })
+
+  api.post('/open', (req, res) => {
+    owner = req.session.user
+
+    lock.unlock()
+      .then(() => {
+        addLogEntry(`opened by ${owner}`)
 
       res.json({
         state: lock.state,
@@ -109,21 +114,24 @@ api.post('/open', (req, res) => {
     })
 })
 
-api.post('/close', (req, res) => {
-  lock.lock()
-    .then(() => {
-      owner = null
+  api.post('/close', (req, res) => {
+    owner = req.session.user
 
-      addLogEntry(`closed by ${owner}`)
+    lock.lock()
+      .then(() => {
+        addLogEntry(`closed by ${owner}`)
+        res.json({
+          state: lock.state,
+          owner
+        })
+      })
+  })
 
-      res.json({ state: lock.state, owner })
-    })
-})
+  return api
+}
 
 function addLogEntry (message) {
   const date = new Date()
 
   fs.appendFileSync(LOG_FILE_PATH, `${date.toLocaleDateString()} ${date.toLocaleTimeString()}: ${message}\n`, { flag: 'as' })
 }
-
-export default api

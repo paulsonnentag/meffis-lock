@@ -153,6 +153,7 @@ body {
 /* Button */
 
 .Button {
+  text-transform: uppercase;
   border: 0;
   background: #4f4f4f;
   color: #fff;
@@ -165,6 +166,10 @@ body {
 
 .Button:disabled {
   opacity: 0.5;
+}
+
+button {
+  text-transform: uppercase;
 }
 
 input,

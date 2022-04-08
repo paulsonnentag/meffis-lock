@@ -1,5 +1,6 @@
 import config from '../config.mjs'
 import keyble from 'keyble'
+import EventEmitter from 'events'
 
 export function createLock () {
   return (
@@ -9,7 +10,7 @@ export function createLock () {
   )
 }
 
-class BluetoothKeyble {
+class BluetoothKeyble extends EventEmitter {
 
   state = 'UNKNOWN'
 
@@ -22,6 +23,8 @@ class BluetoothKeyble {
   })
 
   constructor () {
+    super()
+
     this.requestStatus()
 
     this.key_ble.on('status_change', (statusId, statusName) => {
@@ -29,8 +32,9 @@ class BluetoothKeyble {
         return
       }
 
+      this.emit('changeState', statusName)
       this.state = statusName
-    });
+    })
   }
 
   requestStatus () {
@@ -53,7 +57,7 @@ class BluetoothKeyble {
   }
 }
 
-class MockKeyble {
+class MockKeyble extends EventEmitter {
 
   state = 'UNKNOWN'
 
@@ -65,6 +69,7 @@ class MockKeyble {
     return timeout()
       .then(() => {
         this.state = 'LOCKED'
+        this.emit('changeState', this.state)
       })
   }
 
@@ -72,6 +77,7 @@ class MockKeyble {
     return timeout()
       .then(() => {
         this.state = 'UNLOCKED'
+        this.emit('changeState', this.state)
       })
   }
 }
