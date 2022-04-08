@@ -4,25 +4,18 @@ import fs from 'fs'
 import { isPasswordCorrect } from './password.mjs'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import keyble from 'keyble'
+import { createLock } from './lock.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const api = express.Router()
 
-let isOpen = false
 let owner = null
 
 const USERS_FILE_PATH = path.join(__dirname, '../users.json')
 const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
 
-var key_ble = new keyble.Key_Ble({
-  address: "00:1a:22:17:66:68",
-  user_id: 1,
-  user_key: "xxxxx",
-  auto_disconnect_time: 0,
-  status_update_time: 60
-});
+const lock = createLock()
 
 const users = (
   fs.existsSync(USERS_FILE_PATH)
@@ -37,6 +30,8 @@ const usersByName = users
   }, {})
 
 const MAX_RETRIES = 3
+
+'#b62c26'
 
 api.post('/login', (req, res) => {
   const { username, password } = req.body
@@ -74,7 +69,7 @@ api.post('/login', (req, res) => {
   req.session.user = user.name
   res.json({
     user: user.name,
-    lockState: { isOpen, owner }
+    lockState: { state: lock.state, owner }
   })
 })
 
@@ -93,54 +88,44 @@ api.post('/logout', (req, res) => {
 })
 
 api.get('/status', (req, res) => {
-  key_ble.request_status().then( (lock_state)=> {
-    if (lock_state[1] == 'UNLOCKED') {
-      isOpen = true;
-    } else {
-      isOpen = false;
-    }
-    res.json({
-      lockState: {
-        isOpen,
-        owner
-      },
-      user: req.session.user
-    })
-  });
+  res.json({
+    lockState: {
+      state: lock.state,
+      owner
+    },
+    user: req.session.user
+  })
 })
 
 api.post('/open', (req, res) => {
-
-  keyble.utils.time_limit(key_ble.unlock(), 10000)
-    .then( () => {
-      isOpen = true
+  lock.unlock()
+    .then(() => {
       owner = req.session.user
 
       addLogEntry(`opened by ${owner}`)
 
-      res.json({ isOpen, owner })
-    });
-
+      res.json({
+        state: lock.state,
+        owner
+      })
+    })
 })
 
 api.post('/close', (req, res) => {
-
-  keyble.utils.time_limit(key_ble.lock(), 10000)
+  lock.lock()
     .then(() => {
-      isOpen = false
       owner = null
 
       addLogEntry(`closed by ${owner}`)
 
-      res.json({ isOpen, owner })
-    });
-
+      res.json({ state: lock.state, owner })
+    })
 })
 
 function addLogEntry (message) {
   const date = new Date()
 
-  fs.appendFileSync(LOG_FILE_PATH, `${date.toLocaleDateString()} ${date.toLocaleTimeString()}: ${message}\n`, {flag: 'as'})
+  fs.appendFileSync(LOG_FILE_PATH, `${date.toLocaleDateString()} ${date.toLocaleTimeString()}: ${message}\n`, { flag: 'as' })
 }
 
 export default api

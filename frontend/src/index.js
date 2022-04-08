@@ -45,6 +45,7 @@ function App () {
 
     case LOGGED_IN_STATE:
       const { user, initialLockState } = state
+
       return h(LockStatusScreen, { user, initialLockState, onLogout })
   }
 }
@@ -104,7 +105,7 @@ function LockStatusScreen ({
   user, initialLockState,
   onLogout
 }) {
-  const [{ owner, isOpen }, setLockState] = useState(initialLockState)
+  const [{ owner, state }, setLockState] = useState(initialLockState)
   const [isUpdatePending, setIsUpdatePending] = useState(false)
 
   function onOpenLock () {
@@ -134,6 +135,10 @@ function LockStatusScreen ({
 
   const isForeignOwner = owner && owner !== user
 
+  const isUnlocked = state === 'UNLOCKED'
+  const isLocked = state === 'LOCKED'
+  const isUnknown = state === 'UNKNOWN'
+
   return (
     h('div', { class: 'App' }, [
       h('div', { class: 'Header' }, [
@@ -146,27 +151,26 @@ function LockStatusScreen ({
         h('div', { class: 'Content' }, [
 
           h('div', {}, [
-            isOpen
-              ? `Tür wurde aufgeschlossen von ${owner}`
-              : 'Tür ist abgeschlossen'
+            isUnlocked && `Tür wurde aufgeschlossen von ${owner}`,
+            isLocked &&  'Tür ist abgeschlossen',
+            isUnknown &&  'Schlüssel wurde manuell gedreht'
           ]),
 
           h('button', {
-            class: classNames('Lock', { isOpen }),
+            class: classNames('Lock', { isUnlocked, isLocked, isUnknown }),
             disabled: isUpdatePending,
-            onClick: isOpen ? onCloseLock : onOpenLock
+            onClick: isUnlocked ? onCloseLock : onOpenLock
           }, [
             isUpdatePending && h(Spinner),
           ]),
 
-          isOpen
-            ? (h('button', {
+          (isUnlocked || isUnknown) && (h('button', {
                 class: 'Button',
                 disabled: isUpdatePending,
                 onClick: onCloseLock
               }, 'Schließen')
-            )
-            : h('button', {
+          ),
+          (isLocked || isUnknown) && h('button', {
               class: 'Button',
               disabled: isUpdatePending,
               onClick: onOpenLock

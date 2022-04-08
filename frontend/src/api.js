@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api'
+const API = '/api'
 
 export function loginUser (username, password) {
   return (

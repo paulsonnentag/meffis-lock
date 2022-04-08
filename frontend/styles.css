@@ -73,14 +73,23 @@ body {
   position: relative;
   width: 100px;
   height: 100px;
-  background: url('assets/lock-closed.svg');
   border: 0;
   padding: 0;
 }
 
-.Lock.isOpen {
-  background: url('assets/lock-open.svg');
+.Lock.isLocked {
+  background: url('assets/lock-locked.svg');
 }
+
+
+.Lock.isUnlocked {
+  background: url('assets/lock-unlocked.svg');
+}
+
+.Lock.isUnknown {
+  background: url('assets/lock-unknown.svg');
+}
+
 
 .Lock > .Spinner {
   position: absolute;
