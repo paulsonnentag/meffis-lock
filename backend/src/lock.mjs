@@ -34,7 +34,8 @@ class KeybleLock extends EventEmitter {
 
     this.requestStatus()
 
-    this.key_ble.on('status_change', (statusId, statusName) => {
+    this.key_ble.on('status_change', (status) => {
+      const statusName = status.lock_status
       if (statusName === 'MOVING' || statusName === 'OPENED') {
         return
       }
@@ -42,13 +43,18 @@ class KeybleLock extends EventEmitter {
       this.emit('changeState', statusName)
       this.state = statusName
     })
+
+    this.key_ble.on('disconnected', () => {
+      this.emit('changeState', 'DISCONNECTED')
+      this.state = 'DISCONNECTED'
+    })
   }
 
   requestStatus () {
     return (
-      keyble.utils.time_limit(this.key_ble.request_status())
+      keyble.utils.time_limit(this.key_ble.request_status(), 10000)
         .then((status) => {
-          const statusName = status[1]
+          const statusName = status[0].lock_status
           this.state = statusName
           return statusName
         }) // pick status string
@@ -60,7 +66,7 @@ class KeybleLock extends EventEmitter {
   }
 
   unlock () {
-    return keyble.utils.time_limit(this.key_ble.unlock(), 10000)
+    return keyble.utils.time_limit(this.key_ble.open(), 10000)
   }
 }
 

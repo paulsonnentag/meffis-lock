@@ -1,7 +1,7 @@
 const config = {
   sessionSecret: 'foobar', // secret that will be used for the cookie session
 
-  /* bluetoothImplementation = REAL | MOCK | MOCK_FAULTY
+  /* bluetoothImplementation = KEYBLE | MOCK | MOCK_FAULTY
   *
   *  KEYBLE (default): calls keyble api
   *  MOCK: open and close will always work
