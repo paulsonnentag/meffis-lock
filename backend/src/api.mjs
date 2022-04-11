@@ -33,7 +33,7 @@ export function getApi (io) {
   const api = express.Router()
 
   lock.on('changeState', (newState) => {
-    io.emit('changeState', { state: newState, owner})
+    io.emit('changeState', { state: newState, owner })
   })
 
   api.post('/login', (req, res) => {
@@ -107,12 +107,16 @@ export function getApi (io) {
       .then(() => {
         addLogEntry(`opened by ${owner}`)
 
-      res.json({
-        state: lock.state,
-        owner
+        res.json({
+            state: lock.state,
+            owner
+          })
       })
-    })
-})
+      .catch(() => {
+        res.status(500)
+        res.end()
+      })
+  })
 
   api.post('/close', (req, res) => {
     owner = req.session.user
@@ -124,6 +128,10 @@ export function getApi (io) {
           state: lock.state,
           owner
         })
+      })
+      .catch(() => {
+        res.status(500)
+        res.end()
       })
   })
 

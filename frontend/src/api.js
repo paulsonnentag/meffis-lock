@@ -25,11 +25,15 @@ export function getStatus () {
 }
 
 export function openLock () {
-  return fetchJSON(`${API}/open`, { method: 'POST' })
+  return (
+    fetchJSON(`${API}/open`, { method: 'POST' })
+  )
 }
 
 export function closeLock () {
-  return fetchJSON(`${API}/close`, { method: 'POST' })
+  return (
+    fetchJSON(`${API}/close`, { method: 'POST' })
+  )
 }
 
 function fetchJSON (url, params) {

@@ -3,14 +3,21 @@ import keyble from 'keyble'
 import EventEmitter from 'events'
 
 export function createLock () {
-  return (
-    config.useFakeBluetooth
-      ? new MockKeyble()
-      : new BluetoothKeyble()
-  )
+  console.log(`Using lock implementation: ${config.bluetoothImplementation}`)
+
+  switch (config.bluetoothImplementation) {
+    case 'MOCK':
+      return new MockLock()
+    case 'MOCK_FAULTY':
+      return new MockFaultyLock()
+    case 'KEYBLE':
+      return new KeybleLock()
+    default:
+      throw new Error(`Not implemented ${config.bluetoothImplementation}`)
+  }
 }
 
-class BluetoothKeyble extends EventEmitter {
+class KeybleLock extends EventEmitter {
 
   state = 'UNKNOWN'
 
@@ -57,7 +64,7 @@ class BluetoothKeyble extends EventEmitter {
   }
 }
 
-class MockKeyble extends EventEmitter {
+class MockLock extends EventEmitter {
 
   state = 'UNKNOWN'
 
@@ -81,6 +88,27 @@ class MockKeyble extends EventEmitter {
       })
   }
 }
+
+class MockFaultyLock extends EventEmitter {
+
+  state = 'UNKNOWN'
+
+  requestStatus () {
+    return timeout()
+      .then(() => Promise.reject())
+  }
+
+  lock () {
+    return timeout()
+      .then(() => Promise.reject())
+  }
+
+  unlock () {
+    return timeout()
+      .then(() => Promise.reject())
+  }
+}
+
 
 function timeout (value, duration = 1000) {
   return new Promise((resolve, reject) => {

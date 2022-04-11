@@ -39,6 +39,10 @@ export function LockStatusScreen ({
         setLockState(newLockState)
         setIsUpdatePending(false)
       })
+      .catch(() => {
+        alert('Technischer Fehler: Die Tür konnte nicht geöffnet werden')
+        setIsUpdatePending(false)
+      })
   }
 
   function onCloseLock () {
@@ -47,6 +51,10 @@ export function LockStatusScreen ({
     api.closeLock()
       .then((newLockState) => {
         setLockState(newLockState)
+        setIsUpdatePending(false)
+      })
+      .catch(() => {
+        alert('Technischer Fehler: Die Tür konnte nicht geschlossen werden')
         setIsUpdatePending(false)
       })
   }
