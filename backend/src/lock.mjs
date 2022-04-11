@@ -15,9 +15,9 @@ class BluetoothKeyble extends EventEmitter {
   state = 'UNKNOWN'
 
   key_ble = new keyble.Key_Ble({
-    address: '00:1a:22:17:66:68',
+    address: config.keyble.address  ,
     user_id: 1,
-    user_key: 'xxxxx',
+    user_key: config.keyble.key,
     auto_disconnect_time: 0,
     status_update_time: 60
   })
