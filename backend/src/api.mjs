@@ -5,6 +5,7 @@ import { isPasswordCorrect } from './password.mjs'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { createLock } from './lock.mjs'
+import { createBot } from './bot.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -30,10 +31,21 @@ const MAX_RETRIES = 3
 export function getApi (io) {
 
   const lock = createLock()
+  const bot = createBot()
   const api = express.Router()
 
   lock.on('changeState', (newState) => {
     addLogEntry(`${newState} by ${owner}`)
+
+    switch (newState) {
+      case 'UNLOCKED':
+        bot.postOpen(owner)
+        break;
+
+      case 'LOCKED':
+        bot.postClose(owner)
+        break
+    }
 
     io.emit('changeState', { state: newState, owner })
   })
