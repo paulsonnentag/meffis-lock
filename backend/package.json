@@ -12,7 +12,7 @@
     "body-parser": "^1.19.2",
     "express": "^4.17.3",
     "express-session": "^1.17.2",
-    "keyble": "^0.1.14",
+    "keyble": "https://github.com/paulsonnentag/keyble",
     "readline-promise": "^1.0.5",
     "readline-sync": "^1.4.10",
     "socket.io": "^4.4.1"
