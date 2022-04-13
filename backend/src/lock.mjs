@@ -10,6 +10,8 @@ export function createLock () {
       return new MockLock()
     case 'MOCK_FAULTY':
       return new MockFaultyLock()
+    case 'MOCK_DISCONNECTED':
+      return new MockDisconnectedLock()
     case 'KEYBLE':
       return new KeybleLock()
     default:
@@ -112,6 +114,25 @@ class MockFaultyLock extends EventEmitter {
   unlock () {
     return timeout()
       .then(() => Promise.reject())
+  }
+}
+
+class MockDisconnectedLock extends EventEmitter {
+
+  state = 'DISCONNECTED'
+
+  constructor () {
+    super()
+  }
+
+  requestStatus () {
+    return timeout(this.state)
+  }
+
+  lock () {
+  }
+
+  unlock () {
   }
 }
 

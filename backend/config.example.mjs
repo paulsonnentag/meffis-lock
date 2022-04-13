@@ -6,6 +6,7 @@ const config = {
   *  KEYBLE (default): calls keyble api
   *  MOCK: open and close will always work
   *  MOCK_FAULTY: open and close will fail
+  *  MOCK_DISCONNECTED: alternates between connected and disconnected
   *
   * */
   bluetoothImplementation: 'KEYBLE',

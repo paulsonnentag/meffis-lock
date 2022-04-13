@@ -69,6 +69,7 @@ export function LockStatusScreen ({
   const isUnlocked = state === 'UNLOCKED'
   const isLocked = state === 'LOCKED'
   const isUnknown = state === 'UNKNOWN'
+  const isDisconnected = state === 'DISCONNECTED'
 
   return (
     h('div', { class: 'App' }, [
@@ -81,18 +82,19 @@ export function LockStatusScreen ({
       h('div', { class: 'App_Content' }, [
         h('div', { class: 'Content' }, [
 
-          h('div', {}, [
-            isUnlocked && `Tür wurde aufgeschlossen von ${owner}`,
-            isLocked && 'Tür ist abgeschlossen',
-            isUnknown && 'Schlüssel wurde manuell gedreht'
-          ]),
-
           h('button', {
-            class: classNames('Lock', { isUnlocked, isLocked, isUnknown }),
-            disabled: isUpdatePending,
+            class: classNames('Lock', { isUnlocked, isLocked, isUnknown, isDisconnected }),
+            disabled: isUpdatePending || isDisconnected,
             onClick: isUnlocked ? onCloseLock : onOpenLock
           }, [
             isUpdatePending && h(Spinner),
+          ]),
+
+          h('div', { style: { width: '100%', textAlign: 'center' } }, [
+            isUnlocked && `Tür wurde aufgeschlossen von ${owner}`,
+            isLocked && 'Tür ist abgeschlossen',
+            isUnknown && 'Schlüssel wurde manuell gedreht',
+            isDisconnected && 'Das Schloss ist aktuell nicht verbunden'
           ]),
 
           (isUnlocked || isUnknown) && (h('button', {

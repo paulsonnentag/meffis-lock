@@ -12,6 +12,10 @@ body {
 }
 
 .App {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
 .Form {
@@ -68,6 +72,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex: 1;
+  min-height: 0;
 }
 
 .Content {
@@ -78,7 +84,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  flex: 1;
+  gap: 32px;
 }
 
 /* Lock */
@@ -89,7 +96,6 @@ body {
   height: 100px;
   border: 0;
   padding: 0;
-  margin: 32px 0;
 }
 
 .Lock.isLocked {
@@ -102,6 +108,10 @@ body {
 
 .Lock.isUnknown {
   background: url('assets/lock-unknown.svg');
+}
+
+.Lock.isDisconnected {
+  background: url('assets/warning.svg');
 }
 
 .Lock > .Spinner {
