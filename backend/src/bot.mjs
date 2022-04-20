@@ -1,12 +1,6 @@
 import Slack from '@slack/bolt'
 import config from '../config.mjs'
 
-const app = new Slack.App({
-  token: config.slack.token,
-  signingSecret: config.slack.signingSecret,
-  logLevel: Slack.LogLevel.WARN
-})
-
 function getOpenMessage (owner) {
   return `🟢 Die Tür in Einheit 1 wurde geöffnet von ${owner}`
 }
@@ -16,6 +10,8 @@ function getCloseMessage (owner) {
 }
 
 export function createBot () {
+  console.log(`Slack integration is ${
+    config.slack.disabled ? 'disabled' : 'enabled'}.`)
   return (
     config.slack.disabled
       ? new MockBot()
@@ -25,15 +21,21 @@ export function createBot () {
 
 class SlackBot {
 
+  app = new Slack.App({
+    token: config.slack.token,
+    signingSecret: config.slack.signingSecret,
+    logLevel: Slack.LogLevel.WARN
+  })
+
   postOpen (owner) {
-    app.client.chat.postMessage({
+    this.app.client.chat.postMessage({
       channel: config.slack.targetChannelId,
       text: getOpenMessage(owner)
     })
   }
 
   postClose (owner) {
-    app.client.chat.postMessage({
+    this.app.client.chat.postMessage({
       channel: config.slack.targetChannelId,
       text: getCloseMessage(owner)
     })
