@@ -103,7 +103,7 @@ export function LockStatusScreen ({
               onClick: onCloseLock
             }, 'Schließen')
           ),
-          (isLocked || isUnknown) && h('button', {
+          (isUnlocked || isLocked || isUnknown) && h('button', {
             class: 'Button',
             disabled: isUpdatePending,
             onClick: onOpenLock
