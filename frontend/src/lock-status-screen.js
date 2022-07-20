@@ -64,6 +64,11 @@ export function LockStatusScreen ({
       .then(() => onLogout())
   }
 
+  function onRestart () {
+    setIsUpdatePending(true)
+    api.restart()
+  }
+
   const isForeignOwner = owner && owner !== user
 
   const isUnlocked = state === 'UNLOCKED'
@@ -115,6 +120,13 @@ export function LockStatusScreen ({
               disabled: isUpdatePending,
               onClick: onOpenLock
             }, 'Schlüssel übernehmen')
+          ),
+          // brute-force workaround for getting out of very rarely occuring case
+          (isDisconnected) && (
+            h('button', {
+              class: 'Button',
+              onClick: onRestart
+            }, 'Applikation neustarten')
           )
         ])
       ])

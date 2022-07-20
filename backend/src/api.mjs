@@ -146,6 +146,11 @@ export function getApi (io) {
       })
   })
 
+  api.post('/restart', (req, res) => {
+    process.exitCode = 1;
+    process.exit();
+  })
+
   return api
 }
 

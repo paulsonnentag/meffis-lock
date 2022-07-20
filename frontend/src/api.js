@@ -36,6 +36,12 @@ export function closeLock () {
   )
 }
 
+export function restart () {
+  return (
+    fetchJSON(`${API}/restart`, { method: 'POST' })
+  )
+}
+
 function fetchJSON (url, params) {
   return (
     fetch(url, params)
