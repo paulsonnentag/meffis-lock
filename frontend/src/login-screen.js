@@ -14,7 +14,7 @@ export function LoginScreen ({
     const formData = new FormData(evt.target)
 
     api.loginUser(
-        formData.get('username'),
+        formData.get('username').trim(),
         formData.get('password')
       )
       .then(({ user, lockState }) => onLogin({ user, lockState }))
