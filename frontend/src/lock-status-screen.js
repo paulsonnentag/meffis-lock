@@ -10,6 +10,10 @@ socket.on('connect', () => {
   console.log('connected')
 })
 
+function Sleep(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 export function LockStatusScreen ({
   user, initialLockState,
   onLogout
@@ -67,6 +71,8 @@ export function LockStatusScreen ({
   function onRestart () {
     setIsUpdatePending(true)
     api.restart()
+    // usually it takes keyble 10s to get to a known lock state
+    Sleep(15000).then(() => location.reload())
   }
 
   const isForeignOwner = owner && owner !== user
