@@ -14,17 +14,21 @@ let owner = null
 const USERS_FILE_PATH = path.join(__dirname, '../users.json')
 const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
 
-const users = (
-  fs.existsSync(USERS_FILE_PATH)
-    ? JSON.parse(fs.readFileSync(USERS_FILE_PATH, 'utf8'))
-    : []
-)
+const retriesByName = {}
 
-const usersByName = users
-  .reduce((users, user) => {
-    users[user.name.toLowerCase()] = { ...user, retries: 0 }
-    return users
-  }, {})
+function userByName (name) {
+  const users = JSON.parse(fs.readFileSync(USERS_FILE_PATH, 'utf8'))
+  const user = users.find(user => user.name.toLowerCase() == name)
+
+  if (!user) {
+    return undefined
+  }
+
+  user.name = user.name.toLowerCase()
+  retriesByName[name] = retriesByName[name] || 0
+
+  return user
+}
 
 const MAX_RETRIES = 3
 
@@ -58,8 +62,7 @@ export function getApi (io) {
       res.send('Das Passwort oder der Name ist falsch.')
       return
     }
-
-    const user = usersByName[username.toLowerCase()]
+    const user = userByName(username.toLowerCase())
 
     if (!user) {
       res.status(403)
@@ -67,21 +70,21 @@ export function getApi (io) {
       return
     }
 
-    if (user.retries > MAX_RETRIES) {
+    if (retriesByName[user.name] > MAX_RETRIES) {
       res.status(403)
       res.send('Der User wurde wegen zu vielen Anmeldeversuchen gesperrt.')
       return
     }
 
     if (!isPasswordCorrect(user.hash, user.salt, password)) {
-      user.retries += 1
+      retriesByName[user.name] += 1
       res.status(403)
       res.send('Das Passwort oder der Name ist falsch.')
       return
     }
 
     // reset retries
-    user.retries = 0
+    retriesByName[user.name] = 0
 
     req.session.user = user.name
     res.json({
