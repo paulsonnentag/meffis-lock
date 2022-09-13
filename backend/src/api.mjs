@@ -14,7 +14,7 @@ let owner = null
 const USERS_FILE_PATH = path.join(__dirname, '../users.json')
 const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
 
-const retriesByName = {}
+const triesInfoByName = {}
 
 function userByName (name) {
   const users = JSON.parse(fs.readFileSync(USERS_FILE_PATH, 'utf8'))
@@ -25,12 +25,13 @@ function userByName (name) {
   }
 
   user.name = user.name.toLowerCase()
-  retriesByName[name] = retriesByName[name] || 0
+  triesInfoByName[name] = triesInfoByName[name] || [0, new Date()]
 
   return user
 }
 
-const MAX_RETRIES = 3
+const TRIES_WITHOUT_DELAY = 3
+const INITIAL_RETRY_DELAY_SEC = 60
 
 export function getApi (io) {
 
@@ -70,21 +71,46 @@ export function getApi (io) {
       return
     }
 
-    if (retriesByName[user.name] > MAX_RETRIES) {
+
+    function calcRemainingDelaySec() {
+      var [tries, lastDate] = triesInfoByName[user.name]
+      if (tries < TRIES_WITHOUT_DELAY) {
+        return 0
+      }
+
+      // double delay with each failed retry
+      var delayExp = tries - TRIES_WITHOUT_DELAY
+      var delayMs = Math.pow(2, delayExp) * INITIAL_RETRY_DELAY_SEC * 1000
+      return Math.ceil((delayMs - (new Date() - lastDate)) / 1000)
+
+    }
+
+    // per user login rate limiting
+    var remainingDelaySec = calcRemainingDelaySec()
+    if (remainingDelaySec > 0) {
       res.status(403)
-      res.send('Der User wurde wegen zu vielen Anmeldeversuchen gesperrt.')
+      res.send(`Eingabe ignoriert. Nächster Loginversuch möglich
+        in ${remainingDelaySec} Sekunden.`)
       return
     }
 
     if (!isPasswordCorrect(user.hash, user.salt, password)) {
-      retriesByName[user.name] += 1
+      var [tries, _] = triesInfoByName[user.name]
+      triesInfoByName[user.name] = [tries + 1, new Date()]
       res.status(403)
-      res.send('Das Passwort oder der Name ist falsch.')
+
+      var remainingDelaySec = calcRemainingDelaySec()
+      if (remainingDelaySec == 0) {
+        res.send('Das Passwort oder der Name ist falsch.')
+      } else {
+        res.send(`Das Passwort ist falsch. Nächster
+        Loginversuch möglich in ${remainingDelaySec} Sekunden.`)
+      }
       return
     }
 
-    // reset retries
-    retriesByName[user.name] = 0
+    // reset tries
+    triesInfoByName[user.name] = [0, new Date()]
 
     req.session.user = user.name
     res.json({
