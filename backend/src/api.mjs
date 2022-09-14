@@ -105,6 +105,9 @@ export function getApi (io) {
       } else {
         res.send(`Das Passwort ist falsch. Nächster
         Loginversuch möglich in ${remainingDelaySec} Sekunden.`)
+        var msg = `User '${user.name}' has hit login rate limiting`
+        addLogEntry(msg)
+        console.log(msg)
       }
       return
     }
