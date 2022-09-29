@@ -36,6 +36,12 @@ export function closeLock () {
   )
 }
 
+export function takeOwnership () {
+  return (
+    fetchJSON(`${API}/take`, { method: 'POST' })
+  )
+}
+
 export function restart () {
   return (
     fetchJSON(`${API}/restart`, { method: 'POST' })

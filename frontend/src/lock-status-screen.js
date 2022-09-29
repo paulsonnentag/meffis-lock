@@ -63,6 +63,20 @@ export function LockStatusScreen ({
       })
   }
 
+  function onTakeOwnership () {
+    setIsUpdatePending(true)
+
+    api.takeOwnership()
+      .then((newLockState) => {
+        setLockState(newLockState)
+        setIsUpdatePending(false)
+      })
+      .catch(() => {
+        alert('Technischer Fehler: Der Schlüssel konnte nicht übernommen werden')
+        setIsUpdatePending(false)
+      })
+  }
+
   function onClickLogout () {
     api.logoutUser()
       .then(() => onLogout())
@@ -124,7 +138,7 @@ export function LockStatusScreen ({
             h('button', {
               class: 'Button',
               disabled: isUpdatePending,
-              onClick: onOpenLock
+              onClick: onTakeOwnership
             }, 'Schlüssel übernehmen')
           ),
           // brute-force workaround for getting out of very rarely occuring case

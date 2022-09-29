@@ -178,6 +178,18 @@ export function getApi (io) {
       })
   })
 
+  api.post('/take', (req, res) => {
+    owner = req.session.user
+    var msg = `'${owner}' took over the lock`
+    addLogEntry(msg)
+    console.log(msg)
+
+    res.json({
+        state: lock.state,
+        owner
+      })
+  })
+
   api.post('/restart', (req, res) => {
     process.exitCode = 1;
     process.exit();
