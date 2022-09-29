@@ -147,7 +147,10 @@ export function getApi (io) {
   })
 
   api.post('/open', (req, res) => {
-    owner = req.session.user
+    // just pulling the latch should not change owner
+    if (lock.state != 'UNLOCKED') {
+      owner = req.session.user
+    }
 
     lock.unlock()
       .then(() => {
