@@ -40,7 +40,7 @@ export function getApi (io) {
   const api = express.Router()
 
   lock.on('changeState', (newState) => {
-    addLogEntry(`${newState} by ${owner}`)
+    addLogEntry(`${newState}, current owner: ${owner}`)
 
     switch (newState) {
       case 'UNLOCKED':
@@ -105,9 +105,8 @@ export function getApi (io) {
       } else {
         res.send(`Das Passwort ist falsch. Nächster
         Loginversuch möglich in ${remainingDelaySec} Sekunden.`)
-        var msg = `User '${user.name}' has hit login rate limiting`
+        var msg = `login rate limiting for user ${user.name}`
         addLogEntry(msg)
-        console.log(msg)
       }
       return
     }
@@ -148,9 +147,14 @@ export function getApi (io) {
 
   api.post('/open', (req, res) => {
     // just pulling the latch should not change owner
-    if (lock.state != 'UNLOCKED') {
+    var action
+    if (lock.state == 'UNLOCKED') {
+      action = 'latch pull'
+    } else {
+      action = 'open'
       owner = req.session.user
     }
+    addLogEntry(`${action} request by ${req.session.user}`)
 
     lock.unlock()
       .then(() => {
@@ -160,12 +164,14 @@ export function getApi (io) {
           })
       })
       .catch(() => {
+        addLogEntry(`${action} request by ${req.session.user} failed`)
         res.status(500)
         res.end()
       })
   })
 
   api.post('/close', (req, res) => {
+    addLogEntry(`close request by ${req.session.user}`)
     owner = req.session.user
 
     lock.lock()
@@ -176,16 +182,15 @@ export function getApi (io) {
         })
       })
       .catch(() => {
+        addLogEntry(`close request by ${req.session.user} failed`)
         res.status(500)
         res.end()
       })
   })
 
   api.post('/take', (req, res) => {
+    addLogEntry(`takeover by ${req.session.user}`)
     owner = req.session.user
-    var msg = `'${owner}' took over the lock`
-    addLogEntry(msg)
-    console.log(msg)
 
     res.json({
         state: lock.state,
@@ -194,6 +199,8 @@ export function getApi (io) {
   })
 
   api.post('/restart', (req, res) => {
+    addLogEntry(`restart by ${req.session.user}`)
+
     process.exitCode = 1;
     process.exit();
   })
@@ -202,7 +209,8 @@ export function getApi (io) {
 }
 
 function addLogEntry (message) {
-  const date = new Date()
+  console.log(message)
 
+  const date = new Date()
   fs.appendFileSync(LOG_FILE_PATH, `${date.toLocaleDateString()} ${date.toLocaleTimeString()}: ${message}\n`, { flag: 'as' })
 }

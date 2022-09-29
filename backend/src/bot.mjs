@@ -45,10 +45,8 @@ class SlackBot {
 class MockBot {
 
   postOpen (owner) {
-    console.log(getOpenMessage(owner))
   }
 
   postClose (owner) {
-    console.log(getCloseMessage(owner))
   }
 }
