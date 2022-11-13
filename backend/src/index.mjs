@@ -18,7 +18,8 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: {
-    maxAge: 317098000000 // 1 year
+    maxAge: 317098000000, // 1 year
+    sameSite: 'strict'
   }
 }))
 
@@ -29,4 +30,3 @@ app.use(express.static('public'))
 server.listen(port, () => {
   console.log(`Server listening on port ${port}`)
 });
-
