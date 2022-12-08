@@ -1,9 +1,12 @@
 import config from '../config.mjs'
 import keyble from 'keyble'
 import EventEmitter from 'events'
+import { SerialLock, WebsocketLock } from './keyble-bridge.mjs';
 
 export function createLock () {
   console.log(`Using lock implementation: ${config.bluetoothImplementation}`)
+
+  config.keyble.user_id = 1
 
   switch (config.bluetoothImplementation) {
     case 'MOCK':
@@ -12,8 +15,16 @@ export function createLock () {
       return new MockFaultyLock()
     case 'MOCK_DISCONNECTED':
       return new MockDisconnectedLock()
-    case 'KEYBLE':
-      return new KeybleLock()
+    case 'HCI':
+      return new KeybleLock({
+        ...config.keyble,
+        auto_disconnect_time: 0,
+        status_update_time: 60,
+      })
+    case 'SERIAL':
+      return new SerialLock({...config.keyble, ...config.serial})
+    case 'WEBSOCKET':
+      return new WebsocketLock({...config.keyble, ...config.websocket})
     default:
       throw new Error(`Not implemented ${config.bluetoothImplementation}`)
   }
@@ -21,27 +32,17 @@ export function createLock () {
 
 class KeybleLock extends EventEmitter {
 
-  state = 'UNKNOWN'
+  state = 'DISCONNECTED'
 
-  key_ble = new keyble.Key_Ble({
-    address: config.keyble.address  ,
-    user_id: 1,
-    user_key: config.keyble.key,
-    auto_disconnect_time: 0,
-    status_update_time: 60
-  })
-
-  constructor () {
+  constructor (config) {
     super()
+
+    this.key_ble = new keyble.Key_Ble(config)
 
     this.requestStatus()
 
     this.key_ble.on('status_change', (status) => {
       const statusName = status.lock_status
-      if (statusName === 'MOVING' || statusName === 'OPENED') {
-        return
-      }
-
       this.emit('changeState', statusName)
       this.state = statusName
     })
@@ -54,7 +55,7 @@ class KeybleLock extends EventEmitter {
 
   requestStatus () {
     return (
-      keyble.utils.time_limit(this.key_ble.request_status(), 10000)
+      this.key_ble.request_status()
         .then((status) => {
           const statusName = status[0].lock_status
           this.state = statusName
@@ -64,11 +65,11 @@ class KeybleLock extends EventEmitter {
   }
 
   lock () {
-    return keyble.utils.time_limit(this.key_ble.lock(), 10000)
+    return this.key_ble.lock()
   }
 
-  unlock () {
-    return keyble.utils.time_limit(this.key_ble.open(), 10000)
+  open () {
+    return this.key_ble.open()
   }
 }
 
@@ -88,7 +89,7 @@ class MockLock extends EventEmitter {
       })
   }
 
-  unlock () {
+  open () {
     return timeout()
       .then(() => {
         this.state = 'UNLOCKED'
@@ -111,7 +112,7 @@ class MockFaultyLock extends EventEmitter {
       .then(() => Promise.reject())
   }
 
-  unlock () {
+  open () {
     return timeout()
       .then(() => Promise.reject())
   }
@@ -132,7 +133,7 @@ class MockDisconnectedLock extends EventEmitter {
   lock () {
   }
 
-  unlock () {
+  open () {
   }
 }
 

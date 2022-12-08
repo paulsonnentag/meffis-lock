@@ -4,6 +4,7 @@ import fs from 'fs'
 import { isPasswordCorrect } from './password.mjs'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { timeout } from 'promise-timeout'
 import { createLock } from './lock.mjs'
 import { createBot } from './bot.mjs'
 
@@ -33,6 +34,9 @@ function userByName (name) {
 const TRIES_WITHOUT_DELAY = 3
 const INITIAL_RETRY_DELAY_SEC = 60
 
+// longest observed runtime is a bit over 10 sec (two turns and a long open)
+const LOCK_ACTION_TIMEOUT_MS = 14000
+
 export function getApi (io) {
 
   const lock = createLock()
@@ -40,6 +44,10 @@ export function getApi (io) {
   const api = express.Router()
 
   lock.on('changeState', (newState) => {
+    if (newState ===  'MOVING' || newState === 'OPENED') {
+      return
+    }
+
     addLogEntry(`${newState}, current owner: ${owner}`)
 
     switch (newState) {
@@ -156,7 +164,7 @@ export function getApi (io) {
     }
     addLogEntry(`${action} request by ${req.session.user}`)
 
-    lock.unlock()
+    timeout(lock.open(), LOCK_ACTION_TIMEOUT_MS)
       .then(() => {
         res.json({
             state: lock.state,
@@ -174,7 +182,7 @@ export function getApi (io) {
     addLogEntry(`close request by ${req.session.user}`)
     owner = req.session.user
 
-    lock.lock()
+    timeout(lock.lock(), LOCK_ACTION_TIMEOUT_MS)
       .then(() => {
         res.json({
           state: lock.state,
