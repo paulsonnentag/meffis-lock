@@ -91,10 +91,10 @@ export function LockStatusScreen ({
 
   const isForeignOwner = owner && owner !== user
 
-  const isUnlocked = state === 'UNLOCKED'
-  const isLocked = state === 'LOCKED'
-  const isUnknown = state === 'UNKNOWN'
-  const isDisconnected = state === 'DISCONNECTED'
+  const isUnlocked = state.lock_status === 'UNLOCKED'
+  const isLocked = state.lock_status === 'LOCKED'
+  const isUnknown = state.lock_status === 'UNKNOWN'
+  const isDisconnected = state.lock_status === 'DISCONNECTED'
 
   return (
     h('div', { class: 'App' }, [
@@ -114,6 +114,10 @@ export function LockStatusScreen ({
           }, [
             isUpdatePending && h(Spinner),
           ]),
+
+          (state.battery_low) && (h('div', { style: { width: '100%', textAlign: 'center', color: 'red' } },
+            'Batteriestand niedrig'
+          )),
 
           h('div', { style: { width: '100%', textAlign: 'center' } }, [
             isUnlocked && `Tür wurde aufgeschlossen von ${owner}`,

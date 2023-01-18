@@ -1,12 +1,19 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
 import { EventEmitter } from 'events'
 import { SerialPort, ReadlineParser } from 'serialport'
 import { createServer } from 'https'
 import { WebSocketServer } from 'ws'
 import { readFileSync } from 'fs'
 
-class LockBridge extends EventEmitter {
-  state = 'DISCONNECTED'
+const statusCmd = 'status'
+const secretCmd = 'secret'
 
+class LockBridge extends EventEmitter {
   constructor ({ address, user_id, user_key }) {
     super()
     this.address = address
@@ -16,45 +23,73 @@ class LockBridge extends EventEmitter {
 
   receive (line) {
     if (line === 'ignoreme') {
+      // silently ignore
       return
     }
 
-    if (line === 'needinit') {
+    if (line.startsWith('error ')) {
+      console.log(`Received error from bridge: ${line.substr(6)}`)
+      return
+    }
+
+    if (!line.startsWith(statusCmd)) {
+      console.log(`Error: LockBridge received unknown command '${line}'`)
+      return
+    }
+
+    const [status, ...flags] = line.slice(statusCmd.length + 1).split(' ')
+
+    if (status === 'needinit') {
       const epoch = Math.floor(new Date().getTime() / 1000)
       this.send(`init ${epoch} ${this.address} ${this.key} ${this.id}`)
       return
     }
 
-    let translatedState
-    if (line === 'locked') {
-      translatedState = 'LOCKED'
-    } else if (line === 'unlocked') {
-      translatedState = 'UNLOCKED'
-    } else if (line === 'unknownpos') {
-      translatedState = 'UNKNOWN'
-    } else if (line === 'disconnected') {
-      translatedState = 'DISCONNECTED'
-    } else if (line === 'opened') {
-      translatedState = 'OPENED'
-    } else if (line === 'moving') {
-      translatedState = 'MOVING'
-    } else if (line === 'ignoreme') {
-      // silently ignore
-      return
-    } else if (line.startsWith('error ')) {
-      console.log(`Received error from bridge: ${line.substr(6)}`)
-      return
+    let lock_status
+    if (status === 'locked' ||
+      status === 'unlocked' ||
+      status === 'unknown' ||
+      status === 'disconnected' ||
+      status === 'opened' ||
+      status === 'moving') {
+      lock_status = status.toUpperCase()
     } else {
-      console.log(`Error: LockBridge received unknown command '${line}'`)
+      console.log(`Error: LockBridge received unknown lock status '${status}'`)
       return
     }
-    this.state = translatedState
-    this.emitState()
+
+    if (status === 'disconnected') {
+      this.emit('disconnected')
+      return
+    }
+
+    const [batterylow, needsopen] = flags
+    let battery_low, needs_open
+
+    if (batterylow === 'ok') {
+      battery_low = false
+    } else if (batterylow === 'batterylow') {
+      battery_low = true
+    } else {
+      console.log(`Error: LockBridge received unknown batterylow status '${batterylow}'`)
+      return
+    }
+
+    if (needsopen === 'ok') {
+      needs_open = false
+    } else if (needsopen === 'needsopen') {
+      needs_open = true
+    } else {
+      console.log(`Error: LockBridge received unknown needsopen status '${needsopen}'`)
+      return
+    }
+
+    this.emitState({ lock_status, battery_low, needs_open })
   }
 
-  emitState () {
-    this.emit('changeState', this.state)
-    this.emit(`status:${this.state}`, this.state)
+  emitState (state) {
+    this.emit('status_change', state)
+    this.emit(`status:${state.lock_status}`, state)
   }
 
   restartBridge () {
@@ -65,8 +100,8 @@ class LockBridge extends EventEmitter {
   sendCommandWaitEvent (command, event) {
     return new Promise((resolve, reject) => {
       this.send(command)
-      this.once(event, () => {
-        resolve()
+      this.once(event, (state) => {
+        resolve(state)
       })
     })
   }
@@ -123,7 +158,6 @@ export class SerialLock extends LockBridge {
 
 export class WebsocketLock extends LockBridge {
   lockConnection = null
-  bridgeAuthenticated = false
 
   constructor ({ address, user_id, user_key, port, secret }) {
     super({ address, user_id, user_key })
@@ -137,15 +171,9 @@ export class WebsocketLock extends LockBridge {
     const wss = new WebSocketServer({ server })
 
     wss.on('connection', (ws, req) => {
-      if (this.lockConnection != null) {
-        console.log(`Already connected, ignoring connection request from ${req.socket.remoteAddress}`)
-        ws.close()
-        return
-      }
-
-      console.log(`Connected to bridge ${req.socket.remoteAddress}`)
-
-      this.lockConnection = ws
+      ws.authenticationTimeout = setTimeout(() => {
+        ws.terminate()
+      }, 3000)
 
       ws.missedHeartbeats = 0
       ws.on('pong', () => {
@@ -157,11 +185,13 @@ export class WebsocketLock extends LockBridge {
       })
 
       ws.on('close', (code) => {
-        console.log(`Closed connection to bridge ${ws._socket.remoteAddress} with code ${code}`)
-        this.lockConnection = null
-        this.bridgeAuthenticated = false
-        this.state = 'DISCONNECTED'
-        this.emitState()
+        clearTimeout(ws.authenticationTimeout)
+
+        if (ws === this.lockConnection) {
+          console.log(`Closed connection to bridge ${ws._socket.remoteAddress} with code ${code}`)
+          this.lockConnection = null
+          this.emit('disconnected')
+        }
       })
 
       ws.on('message', (data, isBinary) => {
@@ -172,29 +202,40 @@ export class WebsocketLock extends LockBridge {
 
         const text = data.toString()
         // handle websocket-specific message
-        if (text.startsWith('secret ') && text.substr(7) === secret) {
-          console.log('Websocket bridge successfully authenticated')
-          this.bridgeAuthenticated = true
+        if (text.startsWith(secretCmd)) {
+          clearTimeout(ws.authenticationTimeout)
+          if (text.slice(secretCmd.length + 1) === secret) {
+            if (this.lockConnection !== null) {
+              console.log(`Already connected, ignoring connection request from ${req.socket.remoteAddress}`)
+              ws.close()
+              return
+            }
+            console.log(`Websocket bridge ${req.socket.remoteAddress} successfully authenticated`)
+            this.lockConnection = ws
+
+            // bring the keyble-serial bridge into known state that triggers initialization
+            this.restartBridge()
+          } else {
+            console.log('Websocket bridge authentication failed, secrets do not match')
+            ws.terminate()
+          }
           return
         }
 
-        // ensure malicious actors cannot get lock credentials with 'needinit' command
-        if (!this.bridgeAuthenticated) {
-          console.log(`Ignoring unauthenticated websocket message '${text}'`)
+        // ensure malicious actors cannot get lock credentials with 'status needinit' command
+        if (ws !== this.lockConnection) {
+          console.log(`Ignoring unauthenticated websocket message '${text}' from ${ws._socket.remoteAddress}`)
           return
         }
 
         // handle all other messages
         this.receive(text)
       })
-
-      // bring the keyble-serial bridge into known state that triggers initialization
-      this.restartBridge()
     })
 
     const interval = setInterval(() => {
       wss.clients.forEach((ws) => {
-        if (ws.missedHeartbeats > 1) {
+        if (ws.missedHeartbeats > 2) {
           console.log(`Heartbeat timeout, terminating connection to bridge ${ws._socket.remoteAddress}`)
           // no need to null lockConnection, as terminate causes close event
           return ws.terminate()
@@ -215,7 +256,7 @@ export class WebsocketLock extends LockBridge {
   }
 
   send (message) {
-    if (this.lockConnection != null) {
+    if (this.lockConnection !== null) {
       this.lockConnection.send(message)
     } else {
       console.log(`Error: Failed to send websocket message '${message}'`)

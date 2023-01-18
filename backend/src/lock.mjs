@@ -16,6 +16,9 @@ export function createLock () {
     case 'MOCK_DISCONNECTED':
       return new MockDisconnectedLock()
     case 'HCI':
+      if (config.pullLatch === false) {
+        throw new Error(`HCI does not support detecting 'need_open' condition`)
+      }
       return new KeybleLock({
         ...config.keyble,
         auto_disconnect_time: 0,
@@ -32,36 +35,24 @@ export function createLock () {
 
 class KeybleLock extends EventEmitter {
 
-  state = 'DISCONNECTED'
-
   constructor (config) {
     super()
 
     this.key_ble = new keyble.Key_Ble(config)
 
-    this.requestStatus()
-
     this.key_ble.on('status_change', (status) => {
-      const statusName = status.lock_status
-      this.emit('changeState', statusName)
-      this.state = statusName
+      status.needs_open = false
+      this.emit('status_change', status)
     })
 
     this.key_ble.on('disconnected', () => {
-      this.emit('changeState', 'DISCONNECTED')
-      this.state = 'DISCONNECTED'
+      this.emit('disconnected')
     })
-  }
 
-  requestStatus () {
-    return (
-      this.key_ble.request_status()
-        .then((status) => {
-          const statusName = status[0].lock_status
-          this.state = statusName
-          return statusName
-        }) // pick status string
-    )
+    this.key_ble.request_status()
+      .then((status) => {
+        this.state = status[0]
+      }) // pick status string
   }
 
   lock () {
@@ -71,40 +62,73 @@ class KeybleLock extends EventEmitter {
   open () {
     return this.key_ble.open()
   }
+
+  unlock () {
+    return this.key_ble.unlock()
+  }
 }
 
 class MockLock extends EventEmitter {
 
-  state = 'UNKNOWN'
+  _state = {
+    lock_status: 'UNKNOWN',
+    battery_low: false,
+    needs_open: true,
+  }
+  _lockcount = 0
 
-  requestStatus () {
-    return timeout(this.state)
+  constructor() {
+    super()
+    timeout().then(() => this.emitStateClone())
   }
 
   lock () {
     return timeout()
       .then(() => {
-        this.state = 'LOCKED'
-        this.emit('changeState', this.state)
+        this._state.lock_status = 'LOCKED'
+        this._lockcount++
+        if (this._lockcount > 1) {
+          this._state.battery_low = true
+        }
+        this.emitStateClone()
+        return this._state
       })
   }
 
   open () {
     return timeout()
       .then(() => {
-        this.state = 'UNLOCKED'
-        this.emit('changeState', this.state)
-      })
+        this._state.lock_status = 'OPENED'
+        this._state.needs_open = false
+        this.emitStateClone()
+        timeout().then(() => this.unlock())
+        return this._state
+    })
+  }
+
+  unlock () {
+    return timeout()
+    .then(() => {
+      this._state.lock_status = 'UNLOCKED'
+      this.emitStateClone()
+      return this._state
+    })
+  }
+
+  emitStateClone(state) {
+    this.emit('status_change', structuredClone(this._state))
   }
 }
 
 class MockFaultyLock extends EventEmitter {
 
-  state = 'UNKNOWN'
-
-  requestStatus () {
-    return timeout()
-      .then(() => Promise.reject())
+  constructor() {
+    super()
+    timeout().then(() => this.emit('status_change', {
+      lock_status: 'UNKNOWN',
+      battery_low: false,
+      needs_open: false,
+    }))
   }
 
   lock () {
@@ -113,6 +137,11 @@ class MockFaultyLock extends EventEmitter {
   }
 
   open () {
+    return timeout()
+      .then(() => Promise.reject())
+  }
+
+  unlock () {
     return timeout()
       .then(() => Promise.reject())
   }
@@ -120,20 +149,13 @@ class MockFaultyLock extends EventEmitter {
 
 class MockDisconnectedLock extends EventEmitter {
 
-  state = 'DISCONNECTED'
-
-  constructor () {
-    super()
-  }
-
-  requestStatus () {
-    return timeout(this.state)
-  }
-
   lock () {
   }
 
   open () {
+  }
+
+  unlock () {
   }
 }
 

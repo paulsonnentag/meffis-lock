@@ -39,7 +39,8 @@ const config = {
     token: `xoxb-xxxxxxxxxxx-xxxxxxxxxxx-xxxxxxxxxxx`,
     signingSecret: `xxxxxxxxxx`,
     targetChannelId: 'xxxxxxxxxx'
-  }
+  },
+  pullLatch: true // doors with handle on the outside don't need latch pulling
 }
 
 export default config;

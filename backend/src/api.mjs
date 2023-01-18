@@ -1,3 +1,4 @@
+import config from '../config.mjs'
 import express from 'express'
 import path from 'path'
 import fs from 'fs'
@@ -43,14 +44,24 @@ export function getApi (io) {
   const bot = createBot()
   const api = express.Router()
 
-  lock.on('changeState', (newState) => {
-    if (newState ===  'MOVING' || newState === 'OPENED') {
+  let state = {
+    lock_status: 'DISCONNECTED',
+    battery_low: false,
+    needs_open: false,
+  }
+
+  function handleStateChange(newState) {
+    if (newState.lock_status ===  'MOVING' || newState.lock_status === 'OPENED') {
       return
     }
 
-    addLogEntry(`${newState}, current owner: ${owner}`)
+    state = newState
 
-    switch (newState) {
+    addLogEntry(`${newState.lock_status}, current owner: ${owner}` +
+      (newState.battery_low ? ', battery low' : '') +
+      (newState.needs_open ? ', needs open' : ''))
+
+    switch (newState.lock_status) {
       case 'UNLOCKED':
         bot.postOpen(owner)
         break;
@@ -61,6 +72,18 @@ export function getApi (io) {
     }
 
     io.emit('changeState', { state: newState, owner })
+  }
+
+  lock.on('status_change', (newState) => {
+    handleStateChange(newState)
+  })
+
+  lock.on('disconnected', () => {
+    handleStateChange({
+      lock_status: 'DISCONNECTED',
+      battery_low: false,
+      needs_open: false,
+    })
   })
 
   api.post('/login', (req, res) => {
@@ -125,7 +148,7 @@ export function getApi (io) {
     req.session.user = user.name
     res.json({
       user: user.name,
-      lockState: { state: lock.state, owner }
+      lockState: { state, owner }
     })
   })
 
@@ -146,7 +169,7 @@ export function getApi (io) {
   api.get('/status', (req, res) => {
     res.json({
       lockState: {
-        state: lock.state,
+        state,
         owner
       },
       user: req.session.user
@@ -154,25 +177,32 @@ export function getApi (io) {
   })
 
   api.post('/open', (req, res) => {
-    // just pulling the latch should not change owner
-    var action
-    if (lock.state == 'UNLOCKED') {
-      action = 'latch pull'
+    var action, actionName
+    if (config.pullLatch || state.needs_open) {
+      action = lock.open
+      // just pulling the latch should not change owner
+      if (state.lock_status === 'UNLOCKED') {
+        actionName = 'latch pull'
+      } else {
+        actionName = 'open'
+        owner = req.session.user
+      }
     } else {
-      action = 'open'
+      action = lock.unlock
+      actionName = 'unlock'
       owner = req.session.user
     }
-    addLogEntry(`${action} request by ${req.session.user}`)
+    addLogEntry(`${actionName} request by ${req.session.user}`)
 
-    timeout(lock.open(), LOCK_ACTION_TIMEOUT_MS)
+    timeout(action.call(lock), LOCK_ACTION_TIMEOUT_MS)
       .then(() => {
         res.json({
-            state: lock.state,
+            state,
             owner
           })
       })
       .catch(() => {
-        addLogEntry(`${action} request by ${req.session.user} failed`)
+        addLogEntry(`${actionName} request by ${req.session.user} failed`)
         res.status(500)
         res.end()
       })
@@ -185,7 +215,7 @@ export function getApi (io) {
     timeout(lock.lock(), LOCK_ACTION_TIMEOUT_MS)
       .then(() => {
         res.json({
-          state: lock.state,
+          state,
           owner
         })
       })
@@ -201,7 +231,7 @@ export function getApi (io) {
     owner = req.session.user
 
     res.json({
-        state: lock.state,
+        state,
         owner
       })
   })
