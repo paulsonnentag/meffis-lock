@@ -51,7 +51,7 @@ export function getApi (io) {
   }
 
   function handleStateChange(newState) {
-    if (newState.lock_status ===  'MOVING' || newState.lock_status === 'OPENED') {
+    if (newState.lock_status ===  'MOVING') {
       return
     }
 

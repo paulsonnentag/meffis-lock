@@ -91,6 +91,11 @@ export function LockStatusScreen ({
 
   const isForeignOwner = owner && owner !== user
 
+  // OPENED is equivalent to UNLOCKED
+  if (state.lock_status === 'OPENED') {
+    state.lock_status = 'UNLOCKED'
+  }
+
   const isUnlocked = state.lock_status === 'UNLOCKED'
   const isLocked = state.lock_status === 'LOCKED'
   const isUnknown = state.lock_status === 'UNKNOWN'
