@@ -13,8 +13,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 let owner = null
 
-const USERS_FILE_PATH = path.join(__dirname, '../users.json')
-const LOG_FILE_PATH = path.join(__dirname, '../log.txt')
+const LOG_FILE_PATH = path.join(__dirname, '..', config.logfile)
+const USERS_FILE_PATH = path.join(__dirname, '..', config.usersfile)
 
 const triesInfoByName = {}
 
@@ -84,6 +84,10 @@ export function getApi (io) {
       battery_low: false,
       needs_open: false,
     })
+  })
+
+  api.get('/location', (req, res) => {
+    res.send(config.location)
   })
 
   api.post('/login', (req, res) => {

@@ -24,6 +24,25 @@ export function getStatus () {
   return fetchJSON(`${API}/status`)
 }
 
+export function getLocation () {
+  return (
+    fetch(`${API}/location`)
+      .then((r) => {
+        if (r.status === 200) {
+          return r.text()
+        }
+
+        return (
+          r.text()
+            .catch(() => 'Netzwerkfehler')
+            .then((message) => {
+              return Promise.reject(message)
+            })
+        )
+      })
+  )
+}
+
 export function openLock () {
   return (
     fetchJSON(`${API}/open`, { method: 'POST' })

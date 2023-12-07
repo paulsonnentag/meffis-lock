@@ -3,6 +3,7 @@ import { useState, useEffect } from 'preact/hooks'
 import { LoginScreen } from './login-screen.js'
 import { LockStatusScreen} from './lock-status-screen.js'
 import * as api from './api.js'
+import { signal } from "@preact/signals"
 
 const LOADING_STATE = 'LOADING'
 const LOGGED_IN_STATE = 'LOGGED_IN'
@@ -29,6 +30,10 @@ function App () {
       .catch(() => setState(LoggedOut()))
   }, [])
 
+  let location = signal("")
+  api.getLocation()
+    .then((api_location) => location.value = api_location)
+
   function onLogout () {
     setState(LoggedOut())
   }
@@ -42,17 +47,15 @@ function App () {
       return
 
     case LOGGED_OUT_STATE:
-      return h(LoginScreen, { onLogin })
+      return h(LoginScreen, { onLogin, location })
 
     case LOGGED_IN_STATE:
       const { user, initialLockState } = state
 
-      return h(LockStatusScreen, { user, initialLockState, onLogout })
+      return h(LockStatusScreen, { user, initialLockState, onLogout, location })
   }
 }
 
 const root = document.getElementById('root')
 
 render(h(App, {}), root)
-
-

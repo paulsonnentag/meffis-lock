@@ -1,38 +1,23 @@
-import fs from 'fs'
 import readline from 'readline-sync'
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-import path from 'path'
+import { moduser } from './mod-user.mjs'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+if (process.argv.length == 2) {
+  console.log(`usage:
+remove-user LOCATION...
 
-const USERS_FILE_PATH = path.join(__dirname, '../users.json')
+where LOCATION is:
+1: einheit 1
+2: einheit 2
+w: werkstatt
 
-const users = (
-  fs.existsSync(USERS_FILE_PATH)
-    ? JSON.parse(fs.readFileSync(USERS_FILE_PATH, 'utf8'))
-    : []
-)
-
-const usersByName = users.reduce((usersByName, user) => {
-  usersByName[user.name.toLowerCase()] = user
-  return usersByName
-}, {})
-
-let name
-
-while (true) {
-  name = readline.question('Name: ')
-
-  if (!usersByName[name.toLowerCase()]) {
-    console.warn('Username ist nicht vergeben')
-
-  } else {
-    break
-  }
+example:
+remove-user 1 2 w
+`)
+  process.exit(1)
 }
 
-const uidx = users.findIndex(user => user.name.toLowerCase() == name)
-users.splice(uidx, 1)
+let name = readline.question('Name: ').toLowerCase()
 
-fs.writeFileSync(USERS_FILE_PATH, JSON.stringify(users, null, 2), { flag: 'w+' })
+for (const loc of process.argv.slice(2)) {
+  moduser(loc, name, null, null, true)
+}

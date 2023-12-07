@@ -3,7 +3,7 @@ import * as api from './api.js'
 import { h } from 'preact'
 
 export function LoginScreen ({
-  onLogin
+  onLogin, location
 }) {
 
   const [error, setError] = useState(null)
@@ -30,6 +30,7 @@ export function LoginScreen ({
         h('div', { class: 'Content' }, [
           h('form', { class: 'Form', onSubmit: onSubmitLogin }, [
             h('h1', {class: 'Form_Title'}, 'Anmeldung'),
+            h('h2', {class: 'Form_Title'}, `${location}`),
 
             error && h('div', { class: 'Form_Error' }, error),
 

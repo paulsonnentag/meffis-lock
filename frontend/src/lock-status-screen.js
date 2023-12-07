@@ -16,7 +16,7 @@ function Sleep(milliseconds) {
 
 export function LockStatusScreen ({
   user, initialLockState,
-  onLogout
+  onLogout, location
 }) {
   const [{ owner, state }, setLockState] = useState(initialLockState)
   const [isUpdatePending, setIsUpdatePending] = useState(false)
@@ -111,6 +111,8 @@ export function LockStatusScreen ({
       ]),
       h('div', { class: 'App_Content' }, [
         h('div', { class: 'Content' }, [
+
+          h('h1', {class: 'Form_Title'}, `${location}`),
 
           h('button', {
             class: classNames('Lock', { isUnlocked, isLocked, isUnknown, isDisconnected }),

@@ -4,34 +4,26 @@ import { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import path from 'path'
 import { hashPassword } from './password.mjs'
+import { moduser } from './mod-user.mjs'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+if (process.argv.length == 2) {
+  console.log(`usage:
+add-user LOCATION...
 
-const USERS_FILE_PATH = path.join(__dirname, '../users.json')
+where LOCATION is:
+1: einheit 1
+2: einheit 2
+w: werkstatt
 
-const users = (
-  fs.existsSync(USERS_FILE_PATH)
-    ? JSON.parse(fs.readFileSync(USERS_FILE_PATH, 'utf8'))
-    : []
-)
-
-const usersByName = users.reduce((usersByName, user) => {
-  usersByName[user.name.toLowerCase()] = user
-  return usersByName
-}, {})
+example:
+add-user 1 2 w
+`)
+  process.exit(1)
+}
 
 let name, password1, password2
 
-while (true) {
-  name = readline.question('Name: ')
-
-  if (usersByName[name.toLowerCase()]) {
-    console.warn('Username ist schon vergeben')
-
-  } else {
-    break
-  }
-}
+name = readline.question('Name: ').toLowerCase()
 
 while (true) {
   password1 = readline.question('Passwort: ', { hideEchoBack: true })
@@ -46,6 +38,6 @@ while (true) {
 
 const { hash, salt } = hashPassword(password1)
 
-users.push({ name, hash, salt })
-
-fs.writeFileSync(USERS_FILE_PATH, JSON.stringify(users, null, 2), { flag: 'w+' })
+for (const location of process.argv.slice(2)) {
+  moduser(location, name, hash, salt, false)
+}
