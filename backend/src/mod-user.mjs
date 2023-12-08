@@ -41,7 +41,7 @@ export function moduser(location, name, hash, salt, remove) {
     } else {
       console.log(`${location}: adding user`)
     }
-    users.push({ name, hash, salt })
+    users.push({ name, hash, salt, 'modified':Date.now() })
   }
 
   fs.writeFileSync(userfilepath, JSON.stringify(users, null, 2), { flag: 'w+' })
