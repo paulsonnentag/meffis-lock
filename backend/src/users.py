@@ -688,7 +688,7 @@ if __name__ == '__main__':
     BATCH = bool(len(parms) >= 1)
 
     print(f'We have {len(users.user_keys())} active users, {len(expired.user_keys())} '\
-           'expired users and {len(lt.user_keys())} lifetime rules. ')
+          f'expired users and {len(lt.user_keys())} lifetime rules. ')
     print()
 
     while True:
