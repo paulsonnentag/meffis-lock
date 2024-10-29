@@ -14,6 +14,7 @@ from pathlib import Path
 from time import time
 from datetime import date, datetime, timedelta
 from getpass import getpass
+from functools import cache
 import subprocess
 import json
 import re
@@ -145,6 +146,7 @@ class Users(ABC):
                 self.remove_door(user,door)
             self.modified = True
 
+    @cache
     def last_login(self, user):
         """ return latest date of any user action found in lock logs or None
         """
@@ -192,7 +194,10 @@ class Users(ABC):
                 if m_dur:
                     dur = int(m_dur.group(2))
                     if m_dur.group(1) == '+':
-                        death = self.last_login(user) + timedelta(days=dur)
+                        try:
+                            death = self.last_login(user) + timedelta(days=dur)
+                        except TypeError:
+                            pass  # user never logged in -> expired!
                     else:
                         death = self.last_modified(user) + timedelta(days=dur)
         return date.today() > death
