@@ -553,18 +553,26 @@ def cmd_expire(parms):
         print("    - absolute ISO date:        '2024-05-01'")
         print("    - absolute POSIX timestamp: '1713640324' (= 2024-04-20T21:12:04+02:00)")
         print("    - infinite:                 '*'  Use rarely!")
+        print("    Empty input will clear user's rule if one exists.")
 
         rl = input("  Enter lifetime [see above]: ")
 
-    lt.add_user(nm, rl)
-    print(f"      Creating lifetime rule for user {nm}.")
-
-    if not users.exists(nm):
-        print(f"      \7WARNING: user {nm} not found in active users. This might be a typo."
-             , file=sys.stderr)
-    for door in DOORS:
-        if users.is_expired(nm, door):
-            print("    \7WARNING: lifetime formatted incorrectly, or resulting date is in the past!"
+    if rl:
+        lt.add_user(nm, rl)
+        print(f"      Creating lifetime rule for user {nm}.")
+        if not users.exists(nm):
+            print(f"      \7WARNING: user {nm} not found in active users. This might be a typo."
+                 , file=sys.stderr)
+        for door in DOORS:
+            if users.is_expired(nm, door):
+                print("    \7WARNING: lifetime formatted incorrectly, or resulting date is in the past!"
+                     , file=sys.stderr)
+    else:
+        if lt.exists(nm):
+            lt.remove_user(nm)
+            print(f"      Deleting lifetime rule for user {nm}.")
+        else:
+            print(f"      \7WARNING: user {nm} has no explicit rule, cannot clear it."
                  , file=sys.stderr)
 
     return True
