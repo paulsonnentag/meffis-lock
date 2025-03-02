@@ -646,6 +646,16 @@ def cmd_quit(parms):
     return False
 
 
+def cmd_usage(parms):
+    """ show brief command summary
+    parms[0] = invoking cmd
+    """
+    for cmd in commands:
+        c_abrev = cmd[0] + '[' + cmd[1:] + ']'
+        print(f'{c_abrev:10} - {commands[cmd][1]}')
+    return True
+
+
 def cmd_help(parms):
     """ show help
     parms[0] = invoking cmd
@@ -677,7 +687,8 @@ commands = { 'list':   (cmd_list,   'Show active users, expired users, and lifet
            , 'check':  (cmd_check,  'Check expiration of all users', '')
            , 'revive': (cmd_revive, 'Re-activate one expired user', '<user>')
            , 'save':   (cmd_save,   'Save changes to file(s)', '')
-           , 'quit':   (cmd_quit,   'Close user managemnt, possibly asking to save changes', '')
+           , 'quit':   (cmd_quit,   'Close user management, possibly asking to save changes', '')
+           , 'usage':  (cmd_usage,  'Show command summary', '')
            , 'help':   (cmd_help,   'Show command list or help for a specific command', '<command>')
            , '?':      (cmd_help,   'Show command list or help for a specific command', '<command>')
            }
