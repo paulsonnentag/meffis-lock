@@ -626,7 +626,7 @@ def cmd_check(parms):
     if len(zombies):
         send_mail("List of latest expired lock users",
                   f"Following users lost access to the listed door(s):\n"
-                  f"{'\n'.join(zombies)}")
+                  + '\n'.join(zombies))
     return True
 
 
@@ -749,16 +749,6 @@ if __name__ == '__main__':
     print(f'We have {len(users.user_keys())} active users, {len(expired.user_keys())} '
           f'expired users and {len(lt.user_keys())} lifetime rules. ')
     print()
-
-    if False:  # code to be executed once, manually
-        zomb = set()
-        for name in expired.user_keys():
-            zomb.add(f"{name} ' - door {''.join(expired.doors(name))}")
-            print(f"  Expiring user {name} - door {''.join(expired.doors(name))}")
-        if len(zomb):
-            send_mail("List of newly expired lock users",
-                      f"Following users lost access to the listed door(s):\n"
-                      f"{'\n'.join(zomb)}")
 
     while True:
         if not batchmode:
