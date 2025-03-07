@@ -25,7 +25,7 @@ from base64 import b64encode
 
 HOME_DIR = Path.home() / 'meffis-lock' / 'backend'
 
-DOORS = { '1': '', '2': '-einheit2', 'w': '-werkstatt' }
+DOORS = {'1': '', '2': '-einheit2', 'w': '-werkstatt'}
 
 PWD_ITERATIONS = 10000
 PWD_SALTLENGTH = 128
@@ -36,13 +36,13 @@ RE_LIFETIME_RULE = r"^(\+?)(\d+)d$"
 def users_file(door):
     """ Return filename of users file for given door
     """
-    return  f"users{DOORS[door]}.json"
+    return f"users{DOORS[door]}.json"
 
 
 def log_file(door):
     """ Return filename of log file for given door
     """
-    return  f"log{DOORS[door]}.txt"
+    return f"log{DOORS[door]}.txt"
 
 
 def guess_date_from_timestamp(time_stamp):
@@ -55,12 +55,11 @@ def guess_date_from_timestamp(time_stamp):
     return date.fromtimestamp(time_stamp / 1000)
 
 
-
 class Users(ABC):
     """ Base of user collections.
         Unlike the JS counterpart this combines all users into
         one dictionary with a list of accessible doors.
-        Expired users are kept in a 2nd dict of same structure. 
+        Expired users are kept in a 2nd dict of same structure.
     """
     def __init__(self, lifetimes):
         self._users = {}
@@ -87,7 +86,7 @@ class Users(ABC):
     def user_keys(self):
         """ Return names (keys) of all known users
         """
-        return self._users  #.keys()
+        return self._users
 
     def user_data(self, user):
         """ Return a copy of requested user's data, if any
@@ -143,7 +142,7 @@ class Users(ABC):
                 dest_list.add_user(user, data)
             if door in self.doors(user):
                 dest_list.add_door(user, door)
-                self.remove_door(user,door)
+                self.remove_door(user, door)
             self.modified = True
 
     @cache
@@ -177,7 +176,7 @@ class Users(ABC):
         """ Is requested user's access to door expired?
             Only True if user has an expired entry for requested door.
         """
-        if not door in self.doors(user):
+        if door not in self.doors(user):
             return False
         exp = self.lifetimes.expiration(user, door)
         if exp == '*':
@@ -201,7 +200,6 @@ class Users(ABC):
                     else:
                         death = self.last_modified(user) + timedelta(days=dur)
         return date.today() > death
-
 
 
 class ActiveUsers(Users):
@@ -228,8 +226,9 @@ class ActiveUsers(Users):
         self.modified = True
 
     def write_to_file(self):
-        """ Write users to file for a specific door (the current per-door files),
-            or all in one (for expired.json) - similar to in-mem structure.
+        """ Write users to file for a specific door (the current per-door
+            files), or all in one (for expired.json) - similar to in-mem
+            structure.
         """
         for door in DOORS:
             fname = HOME_DIR / users_file(door)
@@ -249,7 +248,7 @@ class ActiveUsers(Users):
         """
         ret = ''
         if self.exists(name):
-            ret = f" {name : <40}  "
+            ret = f" {name: <40}  "
             for door in DOORS:
                 if self.has_access(name, door):
                     ret += f"{door} OK   "
@@ -261,12 +260,11 @@ class ActiveUsers(Users):
         return ret
 
 
-
 class ExpiredUsers(Users):
     """ Expired users are kept in 1 file, similar structure as in-mem.
     """
     def load_from_file(self):
-        """ Add users from file 
+        """ Add users from file
         """
         fname = HOME_DIR / 'expired.json'
         if Path.exists(fname):
@@ -300,7 +298,7 @@ class ExpiredUsers(Users):
         """
         ret = ''
         if self.exists(name):
-            ret = f" {name : <40}  "
+            ret = f" {name: <40}  "
             for door in DOORS:
                 if self.has_access(name, door):
                     ret += f"{door} OK   "
@@ -312,10 +310,9 @@ class ExpiredUsers(Users):
         return ret
 
 
-
 class Lifetimes:
     """ Definition of lifetimes indexed by user name.
-        Each definition can be a single lifetime or a 
+        Each definition can be a single lifetime or a
         dict of lifetimes indexed by room.
         The later is not exposed at cmd level!
 
@@ -325,7 +322,7 @@ class Lifetimes:
         - duration in days relative to user's modified date:  "30d"
         - duration in days relative to last lock operation:  "+10d"
         - absolute ISO date:  "2023-12-06"
-        - absolute POSIX timestamp:  
+        - absolute POSIX timestamp:
         - infinite:  "*"
     """
     def __init__(self):
@@ -368,7 +365,6 @@ class Lifetimes:
             return exp
         return exp.get(door, None)
 
-
     def add_user(self, user, exp):
         """ Add or redefine user's expiration for all doors.
             addUserDoor() can be used to have door specific expires.
@@ -383,7 +379,7 @@ class Lifetimes:
         self.modified = True
 
 
-#===== helper funcs =====
+# ===== helper funcs =====
 
 
 def get_cmd(token):
@@ -406,7 +402,7 @@ def encode_password(passwd):
     return {'salt': str(salt, 'utf-8'), 'hash': str(hashed, 'utf-8')}
 
 
-#===== command handlers =====
+# ===== command handlers =====
 
 
 def cmd_list(parms):
@@ -414,6 +410,7 @@ def cmd_list(parms):
     parms[0] = invoking cmd
     parms[1] = filter (regEx) to match each printed line, optional
     """
+
     joker = r'.+'
     matching = ''
     if len(parms) > 1:
@@ -443,7 +440,7 @@ def cmd_list(parms):
     print(f'=== lifetimes{matching} ===')
     for name in lt.user_keys():
         expire = lt.expiration(name, users.doors(name))
-        ln = f' {name : <30}: {expire}'
+        ln = f' {name: <30}: {expire}'
         if re.search(joker, ln):
             print(ln)
     return True
@@ -466,8 +463,8 @@ def cmd_new(parms):
             print("    This name does exist!  Aborting.", file=sys.stderr)
             return True
         if expired.exists(nm):
-            print("    This name exists as expired user! Try to 'revive'.  Aborting."
-                 , file=sys.stderr)
+            print("    This name exists as expired user! Try to 'revive'.  Aborting.",
+                  file=sys.stderr)
             return True
 
     if len(parms) > 2:
@@ -485,9 +482,9 @@ def cmd_new(parms):
 
     print(f"    Creating account for '{nm}' with access to doors {dr}")
 
-    #if len(parm) > 3:
-    #    pw =  #TODO read from file, to not expose it in shell log
-#else:
+    # if len(parm) > 3:
+    #     pw =  #TODO read from file, to not expose it in shell log
+    # else:
     pw = getpass(prompt="  Enter new user's password: ")
     pw2 = getpass(prompt="  Repeat same password: ")
     if not pw == pw2:
@@ -518,8 +515,8 @@ def cmd_delete(parms):
         expired.remove_user(nm)
         print(f"      Deleting expired user {nm}.")
     else:
-        print(f"      User {nm} not found in active nor expired users.  Ignoring."
-             , file=sys.stderr)
+        print(f"      User {nm} not found in active nor expired users.  Ignoring.",
+              file=sys.stderr)
 
     if lt.exists(nm):
         lt.remove_user(nm)
@@ -534,7 +531,7 @@ def cmd_expire(parms):
     parms[1] = user name, optional
     parms[2] = lifetime, optional, this can be one of
       - absolute ISO date:  "2023-12-06"
-      - absolute POSIX timestamp:  1713637154  (= 2024-04-20T20:xx) 
+      - absolute POSIX timestamp:  1713637154  (= 2024-04-20T20:xx)
       - duration in days relative to user's modified date:  "30d"
       - duration in days relative to last lock operation:  "+10d"
       - infinite:  "*"
@@ -561,19 +558,19 @@ def cmd_expire(parms):
         lt.add_user(nm, rl)
         print(f"      Creating lifetime rule for user {nm}.")
         if not users.exists(nm):
-            print(f"      \7WARNING: user {nm} not found in active users. This might be a typo."
-                 , file=sys.stderr)
+            print(f"      \7WARNING: user {nm} not found in active users. This might be a typo.",
+                  file=sys.stderr)
         for door in DOORS:
             if users.is_expired(nm, door):
-                print("    \7WARNING: lifetime formatted incorrectly, or resulting date is in the past!"
-                     , file=sys.stderr)
+                print("    \7WARNING: lifetime formatted incorrectly, or resulting date is in the past!",
+                      file=sys.stderr)
     else:
         if lt.exists(nm):
             lt.remove_user(nm)
             print(f"      Deleting lifetime rule for user {nm}.")
         else:
-            print(f"      \7WARNING: user {nm} has no explicit rule, cannot clear it."
-                 , file=sys.stderr)
+            print(f"      \7WARNING: user {nm} has no explicit rule, cannot clear it.",
+                  file=sys.stderr)
 
     return True
 
@@ -609,7 +606,8 @@ def cmd_revive(parms):
                 expired.move_user_door_to(nm, door, users)
                 print(f"    Re-activating user {nm} - {door}")
     else:
-        print(f"      User {nm} not found in expired users.  Aborting.", file=sys.stderr)
+        print(f"      User {nm} not found in expired users.  Aborting.",
+              file=sys.stderr)
     return True
 
 
@@ -679,22 +677,22 @@ def cmd_help(parms):
 
 
 # Ideally each command starts with unique letter(s) to allow abbreviation.
-commands = { 'list':   (cmd_list,   'Show active users, expired users, and lifetime rules; '\
-                                    'limit to matches (string or regular expression)', '<match>')
-           , 'new':    (cmd_new,    'Create new user account', '<user> [<doors>]' )
-           , 'delete': (cmd_delete, 'Delete a user completely', '<user>')
-           , 'expire': (cmd_expire, 'Set individual lifetime', '<user> [<lifetime>]' )
-           , 'check':  (cmd_check,  'Check expiration of all users', '')
-           , 'revive': (cmd_revive, 'Re-activate one expired user', '<user>')
-           , 'save':   (cmd_save,   'Save changes to file(s)', '')
-           , 'quit':   (cmd_quit,   'Close user management, possibly asking to save changes', '')
-           , 'usage':  (cmd_usage,  'Show command summary', '')
-           , 'help':   (cmd_help,   'Show command list or help for a specific command', '<command>')
-           , '?':      (cmd_help,   'Show command list or help for a specific command', '<command>')
-           }
+commands = {'list':   (cmd_list,   'Show active users, expired users, and lifetime rules; '
+                                   'limit to matches (string or regular expression)', '<match>'),
+            'new':    (cmd_new,    'Create new user account', '<user> [<doors>]'),
+            'delete': (cmd_delete, 'Delete a user completely', '<user>'),
+            'expire': (cmd_expire, 'Set individual lifetime', '<user> [<lifetime>]'),
+            'check':  (cmd_check,  'Check expiration of all users', ''),
+            'revive': (cmd_revive, 'Re-activate one expired user', '<user>'),
+            'save':   (cmd_save,   'Save changes to file(s)', ''),
+            'quit':   (cmd_quit,   'Close user management, possibly asking to save changes', ''),
+            'usage':  (cmd_usage,  'Show command summary', ''),
+            'help':   (cmd_help,   'Show command list or help for a specific command', '<command>'),
+            '?':      (cmd_help,   'Show command list or help for a specific command', '<command>'),
+            }
 
 
-#===== main =====
+# ===== main =====
 
 
 if __name__ == '__main__':
@@ -706,7 +704,7 @@ if __name__ == '__main__':
     parms = sys.argv[1:]
     BATCH = bool(len(parms) >= 1)
 
-    print(f'We have {len(users.user_keys())} active users, {len(expired.user_keys())} '\
+    print(f'We have {len(users.user_keys())} active users, {len(expired.user_keys())} '
           f'expired users and {len(lt.user_keys())} lifetime rules. ')
     print()
 
@@ -723,6 +721,6 @@ if __name__ == '__main__':
                 cmd_quit('dummy')
                 sys.exit(0)
         else:
-            print('Input not recognized, you might need "help".  Terminating.'
-                 , file=sys.stderr)
+            print('Input not recognized, you might need "help".  Terminating.',
+                  file=sys.stderr)
             sys.exit(1)
