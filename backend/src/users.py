@@ -21,6 +21,8 @@ import re
 from random import randbytes
 from hashlib import pbkdf2_hmac
 from base64 import b64encode
+import smtplib
+from email.message import EmailMessage
 
 
 HOME_DIR = Path.home() / 'meffis-lock' / 'backend'
@@ -402,6 +404,35 @@ def encode_password(passwd):
     return {'salt': str(salt, 'utf-8'), 'hash': str(hashed, 'utf-8')}
 
 
+def send_mail(subject, body, receiver=None):
+    """" send a mail to the lock admin as defined 
+         in email_cfg.json. Receiver 'to' may be overruled.
+    """
+    fname = HOME_DIR / 'email_cfg.json'
+    config = {}
+    if Path.exists(fname):
+        with open(fname, encoding='utf8') as cf:
+            config = json.load(cf)
+
+    if config and config['server']:
+        msg = EmailMessage()
+        msg.set_content(body)
+        msg['Subject'] = subject
+        msg['From'] = config['from']
+        msg['To'] = receiver if receiver else config['to']
+
+        try:
+            with smtplib.SMTP(config['server']) as smtp:
+                # smtp.set_debuglevel(1)
+                smtp.starttls()
+                smtp.login(config['login'], config['pwd'])
+                smtp.send_message(msg)
+        except Exception as ex:
+            print('OOPS, we have a failure. Please send following output to\n'
+                  'markus.kuhn@meffis.org for analysis. No email was sent.\n'
+                  + str(ex),
+                  file=sys.stderr)
+
 # ===== command handlers =====
 
 
@@ -576,16 +607,26 @@ def cmd_expire(parms):
 
 
 def cmd_check(parms):
-    """ check expiration for each active user
+    """ check expiration for each active user, usually runs as a cron job
     parms[0] = invoking cmd
     """
+
+    zombies = set()
     # check expiration of ALL active users - usually triggered as cron job
     for name in users.user_keys().copy():
         for door in users.doors(name).copy():
             exp = users.is_expired(name, door)
             if exp:
                 users.move_user_door_to(name, door, expired)
+                zombies.add(f"{name} ' - door {door}")
                 print(f"  Expiring user {name} - door {door}")
+
+    for name in expired.user_keys():
+        zombies.add(f"{name} ' - door {''.join(expired.doors(name))}")
+    if len(zombies):
+        send_mail("List of latest expired lock users",
+                  f"Following users lost access to the listed door(s):\n"
+                  f"{'\n'.join(zombies)}")
     return True
 
 
@@ -627,7 +668,7 @@ def cmd_quit(parms):
     parms[0] = invoking cmd
     """
     if users.modified or expired.modified or lt.modified:
-        if BATCH:
+        if batchmode:
             cmd_save(parms)
         else:
             inp = input("  Save changes? (y/n): ")
@@ -696,28 +737,39 @@ commands = {'list':   (cmd_list,   'Show active users, expired users, and lifeti
 
 
 if __name__ == '__main__':
+
     print("Meffi.s Lock - User Management")
     print()
     lt = Lifetimes()
     users = ActiveUsers(lt)
     expired = ExpiredUsers(lt)
-    parms = sys.argv[1:]
-    BATCH = bool(len(parms) >= 1)
+    args = sys.argv[1:]
+    batchmode = bool(len(args) >= 1)
 
     print(f'We have {len(users.user_keys())} active users, {len(expired.user_keys())} '
           f'expired users and {len(lt.user_keys())} lifetime rules. ')
     print()
 
+    if False:  # code to be executed once, manually
+        zomb = set()
+        for name in expired.user_keys():
+            zomb.add(f"{name} ' - door {''.join(expired.doors(name))}")
+            print(f"  Expiring user {name} - door {''.join(expired.doors(name))}")
+        if len(zomb):
+            send_mail("List of newly expired lock users",
+                      f"Following users lost access to the listed door(s):\n"
+                      f"{'\n'.join(zomb)}")
+
     while True:
-        if not BATCH:
+        if not batchmode:
             line = input("Command: ")
-            parms = line.split(" ")
+            args = line.split(" ")
 
-        cmd = get_cmd(parms)
+        cmd = get_cmd(args)
         if cmd:
-            cont = cmd[0](parms)
+            cont = cmd[0](args)
 
-            if not cont or BATCH:
+            if not cont or batchmode:
                 cmd_quit('dummy')
                 sys.exit(0)
         else:
