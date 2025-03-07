@@ -150,7 +150,7 @@ class Users(ABC):
     def last_login(self, user):
         """ return latest date of any user action found in lock logs or None
         """
-        latest = None
+        latest = guess_date_from_timestamp(self._users[user].get('modified', 0))
         for door in self.doors(user):
             res = subprocess.run(['grep', user, HOME_DIR / log_file(door)], stdout=subprocess.PIPE)
             if res.stdout:
