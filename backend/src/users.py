@@ -613,19 +613,19 @@ def cmd_check(parms):
 
     zombies = set()
     # check expiration of ALL active users - usually triggered as cron job
-    for name in users.user_keys().copy():
-        for door in users.doors(name).copy():
+    for name in sorted(users.user_keys()):
+        z_doors = ''
+        for door in sorted(users.doors(name)):
             exp = users.is_expired(name, door)
             if exp:
                 users.move_user_door_to(name, door, expired)
-                zombies.add(f"{name} ' - door {door}")
-                print(f"  Expiring user {name} - door {door}")
+                z_doors += door
+        print(f"  Expiring user {name} - door(s) {z_doors}")
+        zombies.add(f"{name} - door(s) {z_doors}")
 
-    for name in expired.user_keys():
-        zombies.add(f"{name} ' - door {''.join(expired.doors(name))}")
     if len(zombies):
         send_mail("List of latest expired lock users",
-                  f"Following users lost access to the listed door(s):\n"
+                  "Following users lost access to the listed door(s):\n"
                   + '\n'.join(zombies))
     return True
 
