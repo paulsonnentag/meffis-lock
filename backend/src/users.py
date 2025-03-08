@@ -620,8 +620,9 @@ def cmd_check(parms):
             if exp:
                 users.move_user_door_to(name, door, expired)
                 z_doors += door
-        print(f"  Expiring user {name} - door(s) {z_doors}")
-        zombies.add(f"{name} - door(s) {z_doors}")
+        if z_doors:
+            print(f"  Expiring user {name} - door(s) {z_doors}")
+            zombies.add(f"{name} - door(s) {z_doors}")
 
     if len(zombies):
         send_mail("List of latest expired lock users",
