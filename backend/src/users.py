@@ -450,7 +450,7 @@ def cmd_list(parms):
 
     print(f'=== active users{matching} ===')
     had_one = False
-    for name in users.user_keys():
+    for name in sorted(users.user_keys()):
         ln = users.user_state(name)
         if re.search(joker, ln):
             had_one = True
@@ -460,7 +460,7 @@ def cmd_list(parms):
 
     print(f'=== expired users{matching} ===')
     had_one = False
-    for name in expired.user_keys():
+    for name in sorted(expired.user_keys()):
         ln = expired.user_state(name)
         if re.search(joker, ln):
             had_one = True
@@ -469,7 +469,7 @@ def cmd_list(parms):
         print(' -none-')
 
     print(f'=== lifetimes{matching} ===')
-    for name in lt.user_keys():
+    for name in sorted(lt.user_keys()):
         expire = lt.expiration(name, users.doors(name))
         ln = f' {name: <30}: {expire}'
         if re.search(joker, ln):
