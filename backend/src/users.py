@@ -631,6 +631,26 @@ def cmd_check(parms):
     return True
 
 
+def cmd_kill(parms):
+    """ disable the given user, if he/she's active
+    parms[0] = invoking cmd
+    parms[1] = user name, optional
+    """
+    if len(parms) > 1:
+        nm = parms[1]
+    else:
+        nm = input("  Enter user name: ")
+
+    if users.exists(nm):
+        for door in sorted(users.doors(nm)):
+            users.move_user_door_to(nm, door, expired)
+            print(f"    Deactivating user {nm} - {door}")
+    else:
+        print(f"      User {nm} not found in active users.  Ignoring.",
+              file=sys.stderr)
+    return True
+
+
 def cmd_revive(parms):
     """ re-activate the given user, if he/she's expired
     parms[0] = invoking cmd
@@ -643,10 +663,10 @@ def cmd_revive(parms):
 
     if expired.exists(nm):
         for door in expired.doors(nm):
-            exp = expired.is_expired(nm, door)
-            if exp:
-                expired.move_user_door_to(nm, door, users)
-                print(f"    Re-activating user {nm} - {door}")
+#            exp = expired.is_expired(nm, door)
+#            if exp:
+            expired.move_user_door_to(nm, door, users)
+            print(f"    Re-activating user {nm} - {door}")
     else:
         print(f"      User {nm} not found in expired users.  Aborting.",
               file=sys.stderr)
@@ -725,6 +745,7 @@ commands = {'list':   (cmd_list,   'Show active users, expired users, and lifeti
             'delete': (cmd_delete, 'Delete a user completely', '<user>'),
             'expire': (cmd_expire, 'Set individual lifetime', '<user> [<lifetime>]'),
             'check':  (cmd_check,  'Check expiration of all users', ''),
+            'kill':   (cmd_kill,   'Disable one active user', '<user>'),
             'revive': (cmd_revive, 'Re-activate one expired user', '<user>'),
             'save':   (cmd_save,   'Save changes to file(s)', ''),
             'quit':   (cmd_quit,   'Close user management, possibly asking to save changes', ''),
