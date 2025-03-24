@@ -11,7 +11,7 @@
 
 
 # flake8: noqa
-# pylint: disable=line-too-long, unused-argument, broad-exception-caught
+# pylint: disable=line-too-long, unused-argument, broad-exception-caught, C
 
 
 from abc import ABC, abstractmethod
@@ -447,8 +447,8 @@ def encode_password(passwd):
 
 
 def send_mail(subject, body, receiver=None):
-    """" send a mail to the lock admin as defined
-         in email_cfg.json. Receiver 'to' may be overruled.
+    """ send a mail to the lock admin as defined
+        in email_cfg.json. Receiver 'to' may be overruled.
     """
     fname = HOME_DIR / 'email_cfg.json'
     config = {}
@@ -785,9 +785,17 @@ def cmd_usage(parms):
     """ show brief command summary
     parms[0] = invoking cmd
     """
+    print('Commands can be entered interactively at the prompt "Command:" or via the shell command line.')
     for command in commands:
-        c_abrev = command[0] + '[' + command[1:] + ']'
-        print(f'{c_abrev:10} - {commands[command][1]}')
+        c_abrev = command[0]
+        #if len(command) > 1:
+        #    c_abrev += '[' + command[1:] + ']'
+        c_abrev += '[' + command[1:] + '] '  if len(command) > 1 else ' '
+        c_abrev += commands[command][2]
+        print(f'{c_abrev:33} - {commands[command][1]}')
+    print()
+    print('Whenever asked for a "shortname", you may enter a unique substring of a full user name.')
+    print('The command "list <shortname>" will show in advance who will be matching.')
     return True
 
 
@@ -797,7 +805,7 @@ def cmd_help(parms):
     parms[1] = command, optional
     """
     if len(parms) == 1:
-        print('Valid commands: ' + " | ".join(commands.keys()))
+        print('Valid commands:\n' + " | ".join(commands.keys()))
         print()
         print('You can enter "help <command>" for detail.')
         print('All commands may be abbreviated to the unique start of the keyword.')
@@ -814,11 +822,11 @@ def cmd_help(parms):
 
 
 # Ideally each command starts with unique letter(s) to allow abbreviation.
-commands = {'list':   (cmd_list,   'Show active users, expired users, and lifetime rules; '
-                                   'limit to matches (string or regular expression)', '<match>'),
+commands = {'list':   (cmd_list,   'List active & expired users and lifetime rules;\n'
+                                   '\toptionally filter by <match> (string or regular expression)', '[<match>]'),
             'new':    (cmd_new,    'Create new user account', '<user> [<doors>]'),
             'delete': (cmd_delete, 'Delete a user completely', '<shortname>'),
-            'expire': (cmd_expire, 'Set or clear individual lifetime rule', '<shortname> [<lifetime>]'),
+            'expire': (cmd_expire, 'Set or clear user\'s lifetime rule, if any', '<shortname> [<lifetime>]'),
             'kill':   (cmd_kill,   'Disable one active user', '<shortname>'),
             'revive': (cmd_revive, 'Re-activate one expired user', '<shortname>'),
             'save':   (cmd_save,   'Save changes to file(s)', ''),
@@ -842,6 +850,9 @@ if __name__ == '__main__':
     expired = ExpiredUsers(lt)
     args = sys.argv[1:]
     batchmode = bool(len(args) >= 1)
+    if not batchmode:
+        cmd_usage('dummy')
+        print()
 
     print(f'We have {len(users.user_keys())} active users, {len(expired.user_keys())} '
           f'expired users and {len(lt.user_keys())} lifetime rules. ')
