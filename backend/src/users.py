@@ -5,16 +5,22 @@
     parameters, or as a batch tool, when exactly 1 command is given.
 """
 
-#TODO Ablauf incl. Uhrzeit erlauben - würde häufigeren CRON Job erfordern: minütlich, stündlich?
-#TODO Startdatum für Zugang
+# TODO Ablauf incl. Uhrzeit erlauben - würde häufigeren CRON Job
+#      erfordern: minütlich, stündlich?
+# TODO Startdatum für Zugang
 
-import sys
+
+# flake8: noqa
+# pylint: disable=line-too-long, unused-argument, broad-exception-caught
+
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from time import time
 from datetime import date, datetime, timedelta
 from getpass import getpass
-from functools import cache
+from functools import lru_cache
+import sys
 import subprocess
 import json
 import re
@@ -79,11 +85,18 @@ class Users(ABC):
         """ Write users to file(s)
         """
 
-    def exists(self, user):
-        """ check existance of given name
+    def exists(self, user: str):
+        """ check existance of given name, case sensitive!
+            returns bool for unique match
         """
         # return user.lower() in [n.lower() for n in self.user_keys()]
         return user in self.user_keys()
+
+    def exists_fuzzy(self, joker: str):
+        """ check existance of given shortname, case sensitive!
+            returns list of matching full names, possibly empty
+        """
+        return [exact for exact in self._users if joker in exact]
 
     def user_keys(self):
         """ Return names (keys) of all known users
@@ -128,7 +141,8 @@ class Users(ABC):
             This may remove a user completely, if no door left.
         """
         if self.exists(user):
-            self._users[user]['doors'] = self._users[user]['doors'].difference(door)
+            self._users[user]['doors'] = \
+              self._users[user]['doors'].difference(door)
             if not self._users[user]['doors']:
                 self.remove_user(user)
             self.modified = True
@@ -147,13 +161,15 @@ class Users(ABC):
                 self.remove_door(user, door)
             self.modified = True
 
-    @cache
+    @lru_cache(50)
     def last_login(self, user):
         """ return latest date of any user action found in lock logs or None
         """
         latest = guess_date_from_timestamp(self._users[user].get('modified', 0))
         for door in self.doors(user):
-            res = subprocess.run(['grep', user, HOME_DIR / log_file(door)], stdout=subprocess.PIPE)
+            cmdline = ['grep', user, HOME_DIR / log_file(door)]
+            # pylint: disable=subprocess-run-check
+            res = subprocess.run(cmdline, stdout=subprocess.PIPE)
             if res.stdout:
                 out = res.stdout.decode('utf-8').splitlines()
                 last = datetime.strptime(out[-1].split()[0], '%d/%m/%Y').date()
@@ -387,10 +403,36 @@ class Lifetimes:
 def get_cmd(token):
     """ find 1st matching command, or return None
     """
-    for cmd in commands:
-        if cmd[:len(token[0])] == token[0].lower():
-            return commands[cmd]
+    for command in commands:
+        if command[:len(token[0])] == token[0].lower():
+            return commands[command]
     return None
+
+
+def find_shortname(shortname, user_set, get_name) -> bool:
+    """ resolve ambiguity of shortname, by repeatedly asking until we have
+        a single result
+        returns resolved name, or None
+    """
+    while True:
+        matches = user_set.exists_fuzzy(shortname)
+        if not matches:
+            return False
+
+        if len(matches) == 1:
+            return matches[0]
+
+        # pylint: disable-next=possibly-used-before-assignment
+        if batchmode:
+            print("      The shortname has multiple matches.  Aborting.",
+                  file=sys.stderr)
+            return None
+
+        print(f"    Enter more characters as the shortname matched {len(matches)} users.")
+        if len(matches) < 10:
+            print(f">> {', '.join(matches)} <<")
+
+        shortname = get_name()
 
 
 def encode_password(passwd):
@@ -405,7 +447,7 @@ def encode_password(passwd):
 
 
 def send_mail(subject, body, receiver=None):
-    """" send a mail to the lock admin as defined 
+    """" send a mail to the lock admin as defined
          in email_cfg.json. Receiver 'to' may be overruled.
     """
     fname = HOME_DIR / 'email_cfg.json'
@@ -427,6 +469,7 @@ def send_mail(subject, body, receiver=None):
                 smtp.starttls()
                 smtp.login(config['login'], config['pwd'])
                 smtp.send_message(msg)
+        # pylint: disable=broad-exception-caught
         except Exception as ex:
             print('OOPS, we have a failure. Please send following output to\n'
                   'markus.kuhn@meffis.org for analysis. No email was sent.\n'
@@ -450,6 +493,7 @@ def cmd_list(parms):
 
     print(f'=== active users{matching} ===')
     had_one = False
+    # pylint: disable-next=possibly-used-before-assignment
     for name in sorted(users.user_keys()):
         ln = users.user_state(name)
         if re.search(joker, ln):
@@ -460,6 +504,7 @@ def cmd_list(parms):
 
     print(f'=== expired users{matching} ===')
     had_one = False
+    # pylint: disable-next=possibly-used-before-assignment
     for name in sorted(expired.user_keys()):
         ln = expired.user_state(name)
         if re.search(joker, ln):
@@ -469,6 +514,7 @@ def cmd_list(parms):
         print(' -none-')
 
     print(f'=== lifetimes{matching} ===')
+    # pylint: disable-next=possibly-used-before-assignment
     for name in sorted(lt.user_keys()):
         expire = lt.expiration(name, users.doors(name))
         ln = f' {name: <30}: {expire}'
@@ -532,22 +578,32 @@ def cmd_new(parms):
 def cmd_delete(parms):
     """ delete a user completely
     parms[0] = invoking cmd
-    parms[1] = user name, optional
+    parms[1] = shortname, optional
     """
+    def get_name():
+        return input("  Enter a shortname to match one user: ")
+
     if len(parms) > 1:
-        nm = parms[1]
+        s_nm = parms[1]
     else:
-        nm = input("  Enter user name: ")
+        s_nm = get_name()
+
+    nm = find_shortname(s_nm, users, get_name)
+    if not nm:
+        print("    No match in active users, let's retry in expired.")
+        nm = find_shortname(s_nm, expired, get_name)
+
+    if not nm:
+        print("      Name was not found in active nor expired users.  Ignoring.",
+              file=sys.stderr)
+        return True
 
     if users.exists(nm):
         users.remove_user(nm)
         print(f"      Deleting active user {nm}.")
-    elif expired.exists(nm):
+    if expired.exists(nm):
         expired.remove_user(nm)
         print(f"      Deleting expired user {nm}.")
-    else:
-        print(f"      User {nm} not found in active nor expired users.  Ignoring.",
-              file=sys.stderr)
 
     if lt.exists(nm):
         lt.remove_user(nm)
@@ -559,7 +615,7 @@ def cmd_delete(parms):
 def cmd_expire(parms):
     """ add or change a user's lifetime rule
     parms[0] = invoking cmd
-    parms[1] = user name, optional
+    parms[1] = shortname, optional
     parms[2] = lifetime, optional, this can be one of
       - absolute ISO date:  "2023-12-06"
       - absolute POSIX timestamp:  1713637154  (= 2024-04-20T20:xx)
@@ -567,10 +623,19 @@ def cmd_expire(parms):
       - duration in days relative to last lock operation:  "+10d"
       - infinite:  "*"
     """
+    def get_name():
+        return input("  Enter a shortname to match one user: ")
+
     if len(parms) > 1:
         nm = parms[1]
     else:
-        nm = input("  Enter user name: ")
+        nm = get_name()
+
+    nm = find_shortname(nm, users, get_name)
+    if not nm:
+        print("      Name was not found in active users. Create user first!  Ignoring.",
+              file=sys.stderr)
+        return True
 
     if len(parms) > 2:
         rl = parms[2]
@@ -588,9 +653,6 @@ def cmd_expire(parms):
     if rl:
         lt.add_user(nm, rl)
         print(f"      Creating lifetime rule for user {nm}.")
-        if not users.exists(nm):
-            print(f"      \7WARNING: user {nm} not found in active users. This might be a typo.",
-                  file=sys.stderr)
         for door in DOORS:
             if users.is_expired(nm, door):
                 print("    \7WARNING: lifetime formatted incorrectly, or resulting date is in the past!",
@@ -624,7 +686,7 @@ def cmd_check(parms):
             print(f"  Expiring user {name} - door(s) {z_doors}")
             zombies.add(f"{name} - door(s) {z_doors}")
 
-    if len(zombies):
+    if zombies:
         send_mail("List of latest expired lock users",
                   "Following users lost access to the listed door(s):\n"
                   + '\n'.join(zombies))
@@ -634,46 +696,58 @@ def cmd_check(parms):
 def cmd_kill(parms):
     """ disable the given user, if he/she's active
     parms[0] = invoking cmd
-    parms[1] = user name, optional
+    parms[1] = shortname, optional
     """
+    def get_name():
+        return input("  Enter a shortname to match one user: ")
+
     if len(parms) > 1:
         nm = parms[1]
     else:
-        nm = input("  Enter user name: ")
+        nm = get_name()
 
-    if users.exists(nm):
-        for door in sorted(users.doors(nm)):
-            users.move_user_door_to(nm, door, expired)
-            print(f"    Deactivating user {nm} - {door}")
-    else:
-        print(f"      User {nm} not found in active users.  Ignoring.",
+    nm = find_shortname(nm, users, get_name)
+    if not nm:
+        print("      Name was not found in active users.  Ignoring.",
               file=sys.stderr)
+        return True
+
+    for door in sorted(users.doors(nm)):
+        users.move_user_door_to(nm, door, expired)
+        print(f"    Deactivating user {nm} - {door}")
+
     return True
 
 
 def cmd_revive(parms):
     """ re-activate the given user, if he/she's expired
     parms[0] = invoking cmd
-    parms[1] = user name, optional
+    parms[1] = shortname, optional
     """
+    def get_name():
+        return input("  Enter a shortname to match one user: ")
+
     if len(parms) > 1:
         nm = parms[1]
     else:
-        nm = input("  Enter user name: ")
+        nm = get_name()
 
-    if expired.exists(nm):
-        for door in expired.doors(nm):
-#            exp = expired.is_expired(nm, door)
-#            if exp:
-            expired.move_user_door_to(nm, door, users)
-            print(f"    Re-activating user {nm} - {door}")
-    else:
-        print(f"      User {nm} not found in expired users.  Aborting.",
+    nm = find_shortname(nm, expired, get_name)
+    if not nm:
+        print("      Name was not found in expired users.  Ignoring.",
               file=sys.stderr)
+        return True
+
+    for door in expired.doors(nm):
+        expired.move_user_door_to(nm, door, users)
+        print(f"    Re-activating user {nm} - {door}")
+
     return True
 
 
 def cmd_save(parms):
+    """ write everything back to disk
+    """
     if users.modified:
         users.write_to_file()
     if expired.modified:
@@ -689,6 +763,7 @@ def cmd_quit(parms):
     parms[0] = invoking cmd
     """
     if users.modified or expired.modified or lt.modified:
+        # pylint: disable-next=possibly-used-before-assignment
         if batchmode:
             cmd_save(parms)
         else:
@@ -710,9 +785,9 @@ def cmd_usage(parms):
     """ show brief command summary
     parms[0] = invoking cmd
     """
-    for cmd in commands:
-        c_abrev = cmd[0] + '[' + cmd[1:] + ']'
-        print(f'{c_abrev:10} - {commands[cmd][1]}')
+    for command in commands:
+        c_abrev = command[0] + '[' + command[1:] + ']'
+        print(f'{c_abrev:10} - {commands[command][1]}')
     return True
 
 
@@ -742,16 +817,16 @@ def cmd_help(parms):
 commands = {'list':   (cmd_list,   'Show active users, expired users, and lifetime rules; '
                                    'limit to matches (string or regular expression)', '<match>'),
             'new':    (cmd_new,    'Create new user account', '<user> [<doors>]'),
-            'delete': (cmd_delete, 'Delete a user completely', '<user>'),
-            'expire': (cmd_expire, 'Set individual lifetime', '<user> [<lifetime>]'),
-            'check':  (cmd_check,  'Check expiration of all users', ''),
-            'kill':   (cmd_kill,   'Disable one active user', '<user>'),
-            'revive': (cmd_revive, 'Re-activate one expired user', '<user>'),
+            'delete': (cmd_delete, 'Delete a user completely', '<shortname>'),
+            'expire': (cmd_expire, 'Set or clear individual lifetime rule', '<shortname> [<lifetime>]'),
+            'kill':   (cmd_kill,   'Disable one active user', '<shortname>'),
+            'revive': (cmd_revive, 'Re-activate one expired user', '<shortname>'),
             'save':   (cmd_save,   'Save changes to file(s)', ''),
             'quit':   (cmd_quit,   'Close user management, possibly asking to save changes', ''),
             'usage':  (cmd_usage,  'Show command summary', ''),
             'help':   (cmd_help,   'Show command list or help for a specific command', '<command>'),
             '?':      (cmd_help,   'Show command list or help for a specific command', '<command>'),
+            'check':  (cmd_check,  'Check expiration of all users, typically as nightly CRON job', ''),
             }
 
 
