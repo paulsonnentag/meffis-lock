@@ -161,7 +161,7 @@ class Users(ABC):
                 self.remove_door(user, door)
             self.modified = True
 
-    @lru_cache(50)
+    @lru_cache(500)
     def last_login(self, user):
         """ return latest date of any user action found in lock logs or None
         """
