@@ -417,22 +417,32 @@ def find_shortname(shortname, user_set, get_name) -> bool:
     while True:
         matches = user_set.exists_fuzzy(shortname)
         if not matches:
-            return False
+            return None
 
         if len(matches) == 1:
             return matches[0]
 
         # pylint: disable-next=possibly-used-before-assignment
         if batchmode:
-            print("      The shortname has multiple matches.  Aborting.",
+            print("      The shortname has {len(matches)} matches.  Aborting.",
                   file=sys.stderr)
             return None
 
         print(f"    Enter more characters as the shortname matched {len(matches)} users.")
         if len(matches) < 10:
-            print(f">> {', '.join(matches)} <<")
+            lst = [f"#{matches.index(m) + 1} {m}" for m in matches]
+            print(f"\n>> {', '.join(lst)} <<\n")
+            print(f"You can enter '#n' to select the n-th match, e.g. #2 for the 2nd name")
 
         shortname = get_name()
+        if shortname[0] == '#':
+            if not shortname in [l[0:2] for l in lst]:
+                print("      This is no valid selection for above list.  Ignoring.",
+                      file=sys.stderr)
+                return None
+
+            idx = int(shortname[1:]) - 1
+            return matches[idx]
 
 
 def encode_password(passwd):
@@ -536,26 +546,28 @@ def cmd_new(parms):
         if not nm:
             print("    No name given!  Aborting.", file=sys.stderr)
             return True
-        if users.exists(nm):
-            print("    This name does exist!  Aborting.", file=sys.stderr)
-            return True
-        if expired.exists(nm):
-            print("    This name exists as expired user! Try to 'revive'.  Aborting.",
-                  file=sys.stderr)
-            return True
+
+    if users.exists(nm):
+        print("    This name does exist!  Aborting.", file=sys.stderr)
+        return True
+    if expired.exists(nm):
+        print("    This name exists as expired user! Try to 'revive'.  Aborting.",
+              file=sys.stderr)
+        return True
 
     if len(parms) > 2:
         dr = parms[2]
     else:
         dr = input("  Enter combination of doors (1/2/w/*): ")
-        # remove all invalid letters
-        if '*' in dr:
-            dr = '*'
-        else:
-            dr = [d for d in dr if d.lower() in DOORS.keys()]
-        if not dr:
-            print("    Please enter at least one valid door!  Aborting.", file=sys.stderr)
-            return True
+
+    # remove all invalid letters
+    if '*' in dr:
+        dr = '*'
+    else:
+        dr = [d for d in dr if d.lower() in DOORS.keys()]
+    if not dr:
+        print("    Please enter at least one valid door!  Aborting.", file=sys.stderr)
+        return True
 
     print(f"    Creating account for '{nm}' with access to doors {dr}")
 
