@@ -547,6 +547,10 @@ def cmd_new(parms):
             print("    No name given!  Aborting.", file=sys.stderr)
             return True
 
+    if ' ' in nm:
+        nm = nm.replace(' ', '_')
+        print(f"    CAUTION, whitespace has been replaced by '_'\7: {nm}")
+
     if users.exists(nm):
         print("    This name does exist!  Aborting.", file=sys.stderr)
         return True
