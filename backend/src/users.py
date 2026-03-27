@@ -22,6 +22,7 @@ from getpass import getpass
 from functools import lru_cache
 import sys
 import subprocess
+import readline
 import json
 import re
 from random import randbytes
@@ -887,6 +888,10 @@ if __name__ == '__main__':
                 cmd_quit('dummy')
                 sys.exit(0)
         else:
-            print('Input not recognized, you might need "help".  Terminating.',
-                  file=sys.stderr)
-            sys.exit(1)
+            if not batchmode:
+                print('Input not recognized, you might need "help".  Ignoring.',
+                      file=sys.stderr)
+            else:
+                print('Input not recognized, you might need "help".  Terminating.',
+                      file=sys.stderr)
+                sys.exit(1)
