@@ -703,10 +703,20 @@ def cmd_check(parms):
             print(f"  Expiring user {name} - door(s) {z_doors}")
             zombies.add(f"{name} - door(s) {z_doors}")
 
-    if zombies:
+    purged = set()
+    purge_date = date.today() - timedelta(days=365)
+    for name in sorted(expired.user_keys()):
+        if expired.last_modified(name) < purge_date:
+            purged.add(f'{name} - expired {expired.last_modified(name)}')
+            expired.remove_user(name)
+
+    if zombies or purged:
+        breakpoint()
         send_mail("List of latest expired lock users",
-                  "Following users lost access to the listed door(s):\n"
-                  + '\n'.join(zombies))
+                  f"{len(zombies)} users lost access to the listed door(s):\n"
+                  + '\n'.join(zombies) + '\n\n'
+                  + f"{len(purged)} users were purged 1 year past expiration:\n"
+                  + '\n'.join(purged) + '\n')
     return True
 
 
