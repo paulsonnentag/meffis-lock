@@ -711,7 +711,6 @@ def cmd_check(parms):
             expired.remove_user(name)
 
     if zombies or purged:
-        breakpoint()
         send_mail("List of latest expired lock users",
                   f"{len(zombies)} users lost access to the listed door(s):\n"
                   + '\n'.join(zombies) + '\n\n'
